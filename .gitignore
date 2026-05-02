@@ -5,3 +5,5 @@ target/
 *.class
 *.jar
 .env
+ai/
+potfolio_plan.md
