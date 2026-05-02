@@ -19,6 +19,7 @@ public class Product {
     @Column(nullable = false)
     private String name;
 
+    @Column
     private String description;
 
     @Column(nullable = false)
@@ -28,6 +29,6 @@ public class Product {
     private Integer stock;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 }
