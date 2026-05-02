@@ -4,6 +4,8 @@ import com.polybezev.shop.entity.Cart;
 import com.polybezev.shop.entity.CartItem;
 import com.polybezev.shop.entity.Product;
 import com.polybezev.shop.entity.User;
+import com.polybezev.shop.exception.BadRequestException;
+import com.polybezev.shop.exception.NotFoundException;
 import com.polybezev.shop.repository.CartRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,16 +28,15 @@ public class CartService {
 
     public Cart getByUser(User user) {
         return cartRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
+                .orElseThrow(() -> new NotFoundException("Cart not found"));
     }
 
     public Cart addItem(Cart cart, Product product, Integer quantity) {
         if (quantity <= 0)
-            throw new RuntimeException("Quantity must be greater than 0");
+            throw new BadRequestException("Quantity must be greater than 0");
 
         if (product.getStock() < quantity)
-            throw new RuntimeException("Not enough stock. Available: " + product.getStock());
-
+            throw new BadRequestException("Not enough stock. Available: " + product.getStock());
 
         cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
@@ -58,7 +59,7 @@ public class CartService {
         CartItem item = cart.getItems().stream()
                 .filter(i -> i.getId().equals(cartItemId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Item not found!"));
+                .orElseThrow(() -> new NotFoundException("Cart item not found"));
 
         cart.getItems().remove(item);
         cartRepository.save(cart);
@@ -66,12 +67,12 @@ public class CartService {
 
     public Cart updateQuantity(Cart cart, Long cartItemId, Integer quantity) {
         if (quantity <= 0)
-            throw new RuntimeException("Quantity must be greater than 0");
+            throw new BadRequestException("Quantity must be greater than 0");
 
         CartItem cartItem = cart.getItems().stream()
                 .filter(ci -> ci.getId().equals(cartItemId))
                 .findFirst()
-                .orElseThrow(()-> new RuntimeException("Item not found!"));
+                .orElseThrow(() -> new NotFoundException("Cart item not found"));
 
         cartItem.setQuantity(quantity);
         return cartRepository.save(cart);

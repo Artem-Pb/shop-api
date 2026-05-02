@@ -1,6 +1,9 @@
 package com.polybezev.shop.service;
 
 import com.polybezev.shop.entity.Category;
+import com.polybezev.shop.exception.BadRequestException;
+import com.polybezev.shop.exception.ConflictException;
+import com.polybezev.shop.exception.NotFoundException;
 import com.polybezev.shop.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +22,7 @@ public class CategoryService {
 
     public Category getById(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found!"));
+                .orElseThrow(() -> new NotFoundException("Category not found"));
     }
 
     public Category create(Category request) {
@@ -27,18 +30,15 @@ public class CategoryService {
                 null : request.getName().trim();
 
         if (name == null)
-            throw new RuntimeException("Name is blank! Plz, return");
+            throw new BadRequestException("Name must not be blank");
 
-        if (name.length() > 50) {
-            throw new RuntimeException("Over length!");
-        }
+        if (name.length() > 50)
+            throw new BadRequestException("Name must not exceed 50 characters");
 
-        if (categoryRepository.existsByNameIgnoreCase(name)) {
-            throw new RuntimeException("No uniquer name. Plz, return");
-        }
+        if (categoryRepository.existsByNameIgnoreCase(name))
+            throw new ConflictException("Category with this name already exists");
 
         request.setName(name);
-
         return categoryRepository.save(request);
     }
 

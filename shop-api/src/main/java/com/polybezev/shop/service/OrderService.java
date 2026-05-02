@@ -1,6 +1,8 @@
 package com.polybezev.shop.service;
 
 import com.polybezev.shop.entity.*;
+import com.polybezev.shop.exception.BadRequestException;
+import com.polybezev.shop.exception.NotFoundException;
 import com.polybezev.shop.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,7 +22,7 @@ public class OrderService {
     public Order createOrder(User user) {
         Cart cart = cartService.getByUser(user);
         if (cart.getItems().isEmpty())
-            throw new RuntimeException("Cart is empty!");
+            throw new BadRequestException("Cart is empty");
 
         Order order = new Order();
         order.setUser(user);
@@ -28,8 +30,7 @@ public class OrderService {
 
         for (CartItem item : cart.getItems()) {
             if (item.getProduct().getStock() < item.getQuantity())
-                throw new RuntimeException("Not enough stock: "
-                        + item.getProduct().getName());
+                throw new BadRequestException("Not enough stock: " + item.getProduct().getName());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -40,8 +41,7 @@ public class OrderService {
             order.getOrderItems().add(orderItem);
             total = total.add(orderItem.getPriceAtPurchase().multiply(
                     BigDecimal.valueOf(item.getQuantity())));
-            item.getProduct().setStock(item.getProduct().getStock()
-                    - item.getQuantity());
+            item.getProduct().setStock(item.getProduct().getStock() - item.getQuantity());
             productService.save(item.getProduct());
         }
 
@@ -52,7 +52,7 @@ public class OrderService {
 
     public Order getById(Long orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order is found!"));
+                .orElseThrow(() -> new NotFoundException("Order not found"));
     }
 
     public List<Order> findByUser(User user) {
@@ -61,8 +61,9 @@ public class OrderService {
 
     public Order updateStatus(Long orderId, OrderStatus newStatus) {
         Order order = getById(orderId);
-        if (order.getOrderStatus().equals(OrderStatus.DELIVERED) || order.getOrderStatus().equals(OrderStatus.CANCELLED))
-            throw new RuntimeException("Order is already " + order.getOrderStatus());
+        if (order.getOrderStatus().equals(OrderStatus.DELIVERED)
+                || order.getOrderStatus().equals(OrderStatus.CANCELLED))
+            throw new BadRequestException("Order is already " + order.getOrderStatus());
         order.setOrderStatus(newStatus);
         return orderRepository.save(order);
     }

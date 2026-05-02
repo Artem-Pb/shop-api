@@ -4,6 +4,8 @@ import com.polybezev.shop.dto.request.LoginRequest;
 import com.polybezev.shop.dto.request.RegisterRequest;
 import com.polybezev.shop.entity.Role;
 import com.polybezev.shop.entity.User;
+import com.polybezev.shop.exception.ConflictException;
+import com.polybezev.shop.exception.NotFoundException;
 import com.polybezev.shop.repository.UserRepository;
 import com.polybezev.shop.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +25,7 @@ public class AuthService {
 
     public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail()))
-            throw new RuntimeException("Email already exists");
+            throw new ConflictException("Email already exists");
 
         User user = new User();
         user.setEmail(request.getEmail());
@@ -40,7 +42,7 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         return jwtService.generateToken(user.getEmail());
     }
