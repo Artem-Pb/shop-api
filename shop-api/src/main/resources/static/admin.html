@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f0f2f5; }
+        nav { background: #111827; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav span { color: white; font-size: 18px; font-weight: bold; }
+        nav div a { color: #9ca3af; text-decoration: none; margin-left: 1.5rem; font-size: 14px; }
+        nav div a:hover { color: white; }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .tab { padding: 0.6rem 1.25rem; border-radius: 6px; cursor: pointer; font-size: 14px; background: white; border: 1px solid #e5e7eb; color: #374151; }
+        .tab.active { background: #111827; color: white; border-color: #111827; }
+        .section { display: none; }
+        .section.active { display: block; }
+        table { width: 100%; background: white; border-radius: 10px; border-collapse: collapse; box-shadow: 0 1px 6px rgba(0,0,0,0.08); overflow: hidden; }
+        th { background: #f9fafb; padding: 0.75rem 1rem; text-align: left; font-size: 13px; color: #6b7280; border-bottom: 1px solid #f3f4f6; }
+        td { padding: 0.75rem 1rem; font-size: 14px; color: #111; border-bottom: 1px solid #f9fafb; }
+        tr:last-child td { border-bottom: none; }
+        .btn { padding: 0.4rem 0.85rem; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-red { background: #fee2e2; color: #991b1b; }
+        .btn-blue { background: #dbeafe; color: #1e40af; }
+        .btn-green { background: #d1fae5; color: #065f46; }
+        .btn-dark { background: #111827; color: white; }
+        .form-row { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .form-row input, .form-row select { padding: 0.6rem 0.9rem; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; flex: 1; min-width: 150px; }
+        .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 12px; font-weight: bold; }
+        .PENDING   { background: #fef3c7; color: #92400e; }
+        .CONFIRMED { background: #dbeafe; color: #1e40af; }
+        .SHIPPED   { background: #e0e7ff; color: #3730a3; }
+        .DELIVERED { background: #d1fae5; color: #065f46; }
+        .CANCELLED { background: #fee2e2; color: #991b1b; }
+        .ADMIN { background: #111827; color: white; }
+        .USER  { background: #e5e7eb; color: #374151; }
+        .card-form { background: white; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+        .card-form h3 { font-size: 15px; margin-bottom: 1rem; color: #111; }
+        .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #111; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 14px; display: none; }
+    </style>
+</head>
+<body>
+<nav>
+    <span>Admin Panel</span>
+    <div>
+        <a href="/products.html">Shop</a>
+        <a href="#" onclick="logout()">Logout</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('orders')">Orders</div>
+        <div class="tab" onclick="showTab('products')">Products</div>
+        <div class="tab" onclick="showTab('categories')">Categories</div>
+        <div class="tab" onclick="showTab('users')">Users</div>
+    </div>
+
+    <!-- ORDERS -->
+    <div id="tab-orders" class="section active">
+        <table id="orders-table">
+            <thead><tr><th>ID</th><th>User</th><th>Total</th><th>Date</th><th>Status</th><th>Change Status</th></tr></thead>
+            <tbody id="orders-body"></tbody>
+        </table>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div id="tab-products" class="section">
+        <div class="card-form">
+            <h3>Add Product</h3>
+            <div class="form-row">
+                <input id="p-name" placeholder="Name" />
+                <input id="p-desc" placeholder="Description" />
+                <input id="p-price" type="number" placeholder="Price" />
+                <input id="p-stock" type="number" placeholder="Stock" />
+                <select id="p-category"></select>
+                <button class="btn btn-dark" onclick="createProduct()">Add</button>
+            </div>
+        </div>
+        <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th></th></tr></thead>
+            <tbody id="products-body"></tbody>
+        </table>
+
+        <!-- Edit form (hidden by default) -->
+        <div id="edit-product-form" class="card-form" style="display:none; margin-top:1.5rem;">
+            <h3>Edit Product</h3>
+            <input type="hidden" id="ep-id" />
+            <div class="form-row">
+                <input id="ep-name" placeholder="Name" />
+                <input id="ep-desc" placeholder="Description" />
+                <input id="ep-price" type="number" placeholder="Price" />
+                <input id="ep-stock" type="number" placeholder="Stock" />
+                <button class="btn btn-dark" onclick="saveProduct()">Save</button>
+                <button class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('edit-product-form').style.display='none'">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div id="tab-categories" class="section">
+        <div class="card-form">
+            <h3>Add Category</h3>
+            <div class="form-row">
+                <input id="c-name" placeholder="Category name" />
+                <button class="btn btn-dark" onclick="createCategory()">Add</button>
+            </div>
+        </div>
+        <table>
+            <thead><tr><th>ID</th><th>Name</th><th></th></tr></thead>
+            <tbody id="categories-body"></tbody>
+        </table>
+    </div>
+
+    <!-- USERS -->
+    <div id="tab-users" class="section">
+        <table>
+            <thead><tr><th>ID</th><th>Email</th><th>Role</th><th>Change Role</th></tr></thead>
+            <tbody id="users-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/index.html';
+
+    const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+    function showTab(name) {
+        document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['orders','products','categories','users'][i] === name));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        if (name === 'orders') loadOrders();
+        if (name === 'products') loadProducts();
+        if (name === 'categories') loadCategories();
+        if (name === 'users') loadUsers();
+    }
+
+    // ORDERS
+    async function loadOrders() {
+        const res = await fetch('/api/orders', { headers });
+        const orders = await res.json();
+        const statuses = ['PENDING','CONFIRMED','SHIPPED','DELIVERED','CANCELLED'];
+        document.getElementById('orders-body').innerHTML = orders.map(o => `
+            <tr>
+                <td>#${o.id}</td>
+                <td>${o.id}</td>
+                <td>$${o.totalAmount}</td>
+                <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+                <td><span class="badge ${o.orderStatus}">${o.orderStatus}</span></td>
+                <td>
+                    <select id="status-${o.id}">
+                        ${statuses.map(s => `<option value="${s}" ${s===o.orderStatus?'selected':''}>${s}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-blue" onclick="updateOrderStatus(${o.id})">Save</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function updateOrderStatus(id) {
+        const status = document.getElementById('status-' + id).value;
+        const res = await fetch(`/api/orders/${id}/status?status=${status}`, { method: 'PUT', headers });
+        if (res.ok) { showToast('Status updated'); loadOrders(); }
+        else { const d = await res.json(); showToast(d.error || 'Error'); }
+    }
+
+    // PRODUCTS
+    async function loadProducts() {
+        const [pRes, cRes] = await Promise.all([
+            fetch('/api/products?size=100', { headers }),
+            fetch('/api/categories', { headers })
+        ]);
+        const pData = await pRes.json();
+        const categories = await cRes.json();
+
+        const sel = document.getElementById('p-category');
+        sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+        document.getElementById('products-body').innerHTML = pData.content.map(p => `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.name}</td>
+                <td>${p.categoryName}</td>
+                <td>$${p.price}</td>
+                <td>${p.stock}</td>
+                <td style="display:flex;gap:0.5rem">
+                    <button class="btn btn-blue" onclick="editProduct(${p.id},'${p.name.replace(/'/g,"\\'")}','${(p.description||'').replace(/'/g,"\\'")}',${p.price},${p.stock})">Edit</button>
+                    <button class="btn btn-red" onclick="deleteProduct(${p.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function createProduct() {
+        const body = {
+            name: document.getElementById('p-name').value,
+            description: document.getElementById('p-desc').value,
+            price: parseFloat(document.getElementById('p-price').value),
+            stock: parseInt(document.getElementById('p-stock').value),
+            categoryId: parseInt(document.getElementById('p-category').value)
+        };
+        const res = await fetch('/api/products', { method: 'POST', headers, body: JSON.stringify(body) });
+        if (res.ok) { showToast('Product created'); loadProducts(); }
+        else { const d = await res.json(); showToast(d.error || JSON.stringify(d)); }
+    }
+
+    function editProduct(id, name, desc, price, stock) {
+        document.getElementById('ep-id').value = id;
+        document.getElementById('ep-name').value = name;
+        document.getElementById('ep-desc').value = desc;
+        document.getElementById('ep-price').value = price;
+        document.getElementById('ep-stock').value = stock;
+        document.getElementById('edit-product-form').style.display = 'block';
+        document.getElementById('edit-product-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function saveProduct() {
+        const id = document.getElementById('ep-id').value;
+        const body = {
+            name: document.getElementById('ep-name').value,
+            description: document.getElementById('ep-desc').value,
+            price: parseFloat(document.getElementById('ep-price').value),
+            stock: parseInt(document.getElementById('ep-stock').value)
+        };
+        const res = await fetch(`/api/products/${id}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+        if (res.ok) {
+            showToast('Product updated');
+            document.getElementById('edit-product-form').style.display = 'none';
+            loadProducts();
+        } else {
+            const d = await res.json();
+            showToast(d.error || JSON.stringify(d));
+        }
+    }
+
+    async function deleteProduct(id) {
+        if (!confirm('Delete product?')) return;
+        await fetch(`/api/products/${id}`, { method: 'DELETE', headers });
+        showToast('Deleted'); loadProducts();
+    }
+
+    // CATEGORIES
+    async function loadCategories() {
+        const res = await fetch('/api/categories', { headers });
+        const cats = await res.json();
+        document.getElementById('categories-body').innerHTML = cats.map(c => `
+            <tr>
+                <td>${c.id}</td>
+                <td>${c.name}</td>
+                <td><button class="btn btn-red" onclick="deleteCategory(${c.id})">Delete</button></td>
+            </tr>
+        `).join('');
+    }
+
+    async function createCategory() {
+        const name = document.getElementById('c-name').value;
+        const res = await fetch('/api/categories', { method: 'POST', headers, body: JSON.stringify({ name }) });
+        if (res.ok) { showToast('Category created'); loadCategories(); document.getElementById('c-name').value = ''; }
+        else { const d = await res.json(); showToast(d.error || JSON.stringify(d)); }
+    }
+
+    async function deleteCategory(id) {
+        if (!confirm('Delete category?')) return;
+        await fetch(`/api/categories/${id}`, { method: 'DELETE', headers });
+        showToast('Deleted'); loadCategories();
+    }
+
+    // USERS
+    async function loadUsers() {
+        const res = await fetch('/api/admin/users', { headers });
+        if (res.status === 403) { showToast('Access denied'); return; }
+        const users = await res.json();
+        document.getElementById('users-body').innerHTML = users.map(u => `
+            <tr>
+                <td>${u.id}</td>
+                <td>${u.email}</td>
+                <td><span class="badge ${u.role}">${u.role}</span></td>
+                <td>
+                    <button class="btn ${u.role === 'ADMIN' ? 'btn-red' : 'btn-green'}"
+                        onclick="toggleRole(${u.id}, '${u.role}')">
+                        ${u.role === 'ADMIN' ? 'Make USER' : 'Make ADMIN'}
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function toggleRole(id, currentRole) {
+        const newRole = currentRole === 'ADMIN' ? 'USER' : 'ADMIN';
+        const res = await fetch(`/api/admin/users/${id}/role?role=${newRole}`, { method: 'PUT', headers });
+        if (res.ok) { showToast('Role updated'); loadUsers(); }
+        else { const d = await res.json(); showToast(d.error || 'Error'); }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2500);
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        location.href = '/index.html';
+    }
+
+    loadOrders();
+</script>
+</body>
+</html>

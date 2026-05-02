@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shop — Cart</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f0f2f5; }
+        nav { background: #4f46e5; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav span { color: white; font-size: 18px; font-weight: bold; }
+        nav div a { color: white; text-decoration: none; margin-left: 1.5rem; font-size: 14px; }
+        nav div a:hover { text-decoration: underline; }
+        .container { max-width: 700px; margin: 2rem auto; padding: 0 1rem; }
+        .item { background: white; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+        .item-info h3 { font-size: 16px; color: #111; }
+        .item-info span { font-size: 13px; color: #6b7280; }
+        .item-right { display: flex; align-items: center; gap: 0.75rem; }
+        .item-right input { width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; font-size: 14px; }
+        .btn-remove { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 18px; }
+        .summary { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+        .summary h3 { font-size: 18px; margin-bottom: 1rem; color: #111; }
+        .summary button { width: 100%; padding: 0.75rem; background: #4f46e5; color: white; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+        .summary button:hover { background: #4338ca; }
+        .empty { text-align: center; color: #9ca3af; padding: 3rem; }
+        .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #111; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 14px; display: none; }
+    </style>
+</head>
+<body>
+<nav>
+    <span>Shop</span>
+    <div>
+        <a href="/products.html">Products</a>
+        <a href="/cart.html">Cart</a>
+        <a href="/orders.html">Orders</a>
+        <a href="#" onclick="logout()">Logout</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div id="items"></div>
+    <div id="summary" style="display:none" class="summary">
+        <h3>Total: $<span id="total">0</span></h3>
+        <br>
+        <button onclick="checkout()">Place Order</button>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/index.html';
+
+    let cart = null;
+
+    async function load() {
+        const res = await fetch('/api/cart', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.status === 401 || res.status === 403) { location.href = '/index.html'; return; }
+        cart = await res.json();
+        render();
+    }
+
+    function render() {
+        const container = document.getElementById('items');
+        const summary = document.getElementById('summary');
+
+        if (!cart.items.length) {
+            container.innerHTML = '<div class="empty">Your cart is empty</div>';
+            summary.style.display = 'none';
+            return;
+        }
+
+        let total = 0;
+        container.innerHTML = cart.items.map(item => {
+            total += item.price * item.quantity;
+            return `
+                <div class="item">
+                    <div class="item-info">
+                        <h3>${item.productName}</h3>
+                        <span>$${item.price} each</span>
+                    </div>
+                    <div class="item-right">
+                        <input type="number" min="1" value="${item.quantity}"
+                            onblur="updateQty(${item.id}, this.value)" />
+                        <button class="btn-remove" onclick="remove(${item.id})">✕</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('total').textContent = total.toFixed(2);
+        summary.style.display = 'block';
+    }
+
+    async function updateQty(itemId, qty) {
+        await fetch(`/api/cart/items/${itemId}?quantity=${parseInt(qty)}`, {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        load();
+    }
+
+    async function remove(itemId) {
+        await fetch(`/api/cart/items/${itemId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        load();
+    }
+
+    async function checkout() {
+        const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+            showToast('Order placed!');
+            load();
+        } else {
+            const data = await res.json();
+            showToast(data.error || 'Error');
+        }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2500);
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        location.href = '/index.html';
+    }
+
+    load();
+</script>
+</body>
+</html>
