@@ -6,3 +6,4 @@ target/
 *.jar
 .env
 ai/
+potfolio_plan.md
