@@ -15,6 +15,9 @@ spring:
 server:
   port: 8080
 
+jwt:
+  secret: CP6BCPMDWH5K3kpviYoihaC8mZzMi02zdD4raIOgpjw=
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
