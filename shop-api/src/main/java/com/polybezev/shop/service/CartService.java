@@ -42,7 +42,12 @@ public class CartService {
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst()
                 .ifPresentOrElse(
-                        item -> item.setQuantity(item.getQuantity() + quantity),
+                        item -> {
+                            int newTotal = item.getQuantity() + quantity;
+                            if (newTotal > product.getStock())
+                                throw new BadRequestException("Not enough stock. Available: " + product.getStock());
+                            item.setQuantity(newTotal);
+                        },
                         () -> {
                             CartItem newCartItem = new CartItem();
                             newCartItem.setCart(cart);

@@ -45,10 +45,10 @@ public class CartController {
     @PutMapping("/items/{itemId}")
     public ResponseEntity<CartResponse> updateQuantity(@AuthenticationPrincipal UserDetails userDetails,
                                                         @PathVariable Long itemId,
-                                                        @Valid @RequestBody CartRequest request) {
+                                                        @RequestParam Integer quantity) {
         User user = userService.getByEmail(userDetails.getUsername());
         Cart cart = cartService.getOrCreateCart(user);
-        Cart updated = cartService.updateQuantity(cart, itemId, request.getQuantity());
+        Cart updated = cartService.updateQuantity(cart, itemId, quantity);
         return ResponseEntity.ok(toResponse(updated));
     }
 
