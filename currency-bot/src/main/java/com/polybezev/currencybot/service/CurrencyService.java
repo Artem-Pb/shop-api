@@ -4,6 +4,8 @@ import com.polybezev.currencybot.model.CurrencyModel;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,10 +14,11 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-
+@Service
 public class CurrencyService {
 
-    public static CurrencyModel getCurrency(String currencyCode) throws IOException {
+    @Cacheable("currency")
+    public CurrencyModel getCurrency(String currencyCode) throws IOException {
         Gson gson = new Gson();
         URL url = new URL("https://www.cbr-xml-daily.ru/daily_json.js");
 
@@ -46,7 +49,8 @@ public class CurrencyService {
         return model;
     }
 
-    public static String getFormattedCurrencyList() throws IOException {
+    @Cacheable("currencyList")
+    public String getFormattedCurrencyList() throws IOException {
         Gson gson = new Gson();
         URL url = new URL("https://www.cbr-xml-daily.ru/daily_json.js");
 
