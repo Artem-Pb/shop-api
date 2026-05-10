@@ -21,13 +21,26 @@ public class MessageFormatter {
     // ==================== KEYBOARDS ====================
 
     public InlineKeyboardMarkup buildConvertKeyboard() {
+        List<List<InlineKeyboardButton>> rows = baseCurrencyRows();
+        rows.add(row(btn("🇷🇺 RUB", "RUB")));
+        return markup(rows);
+    }
+
+    public InlineKeyboardMarkup buildRatesKeyboard() {
+        return markup(baseCurrencyRows());
+    }
+
+    private List<List<InlineKeyboardButton>> baseCurrencyRows() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(row(btn("🇺🇸 USD", "USD"), btn("🇪🇺 EUR", "EUR"), btn("🇨🇳 CNY", "CNY")));
         rows.add(row(btn("🇬🇧 GBP", "GBP"), btn("🇯🇵 JPY", "JPY"), btn("🇨🇭 CHF", "CHF")));
         rows.add(row(btn("🇹🇷 TRY", "TRY"), btn("🇦🇪 AED", "AED"), btn("🇰🇿 KZT", "KZT")));
         rows.add(row(btn("🇧🇾 BYN", "BYN"), btn("🇨🇦 CAD", "CAD"), btn("🇭🇰 HKD", "HKD")));
         rows.add(row(btn("₿ BTC", "BTC")));
+        return rows;
+    }
 
+    private InlineKeyboardMarkup markup(List<List<InlineKeyboardButton>> rows) {
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(rows);
         return markup;
@@ -53,13 +66,13 @@ public class MessageFormatter {
         return String.format(
                 """
                         ₿ %s
-                        
+
                         1 %s = %.0f ₽
                         1 %s = %.0f $
-                        
+
                         %s %.2f%% за 24ч
-                        
-                        \uD83D\uDCC5 CoinGecko · %s""",
+
+                        📅 CoinGecko · %s""",
                 model.getSymbol(),
                 model.getSymbol(), model.getPriceRub(),
                 model.getSymbol(), model.getPriceUsd(),

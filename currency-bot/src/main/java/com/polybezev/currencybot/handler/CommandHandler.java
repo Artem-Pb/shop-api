@@ -75,7 +75,7 @@ public class CommandHandler {
     private SendMessage handleList(long chatId) {
         try {
             String list = currencyService.getFormattedCurrencyList();
-            return msg(chatId, list, formatter.buildConvertKeyboard());
+            return msg(chatId, list, formatter.buildRatesKeyboard());
         } catch (IOException e) {
             log.error("API unavailable for user {}: {}", chatId, e.getMessage(), e);
             return msg(chatId, BotMessages.LIST_ERROR);
@@ -173,6 +173,6 @@ public class CommandHandler {
     }
 
     private SendMessage showCurseKeyboard(long chatId) {
-        return msg(chatId, "Выберите валюту: ", formatter.buildConvertKeyboard());
+        return msg(chatId, "Выберите валюту: ", formatter.buildRatesKeyboard());
     }
 }
