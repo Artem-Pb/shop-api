@@ -4,7 +4,9 @@ import com.polybezev.currencybot.model.CurrencyModel;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -16,6 +18,10 @@ import java.util.*;
 
 @Service
 public class CurrencyService {
+
+    @Autowired
+    @Lazy
+    private CurrencyService self;
 
     @Cacheable("currency")
     public CurrencyModel getCurrency(String currencyCode) throws IOException {
@@ -49,6 +55,28 @@ public class CurrencyService {
         return model;
     }
 
+    public double convertCurrency(double amount, String from, String to) throws IOException {
+        if (from.equals("RUB")) {
+            CurrencyModel rate = self.getCurrency(to);
+            double rateTo = rate.getValue() / rate.getNominal();
+            return amount / rateTo;
+        }
+
+        if (to.equals("RUB")) {
+            CurrencyModel rate = self.getCurrency(from);
+            double rateFrom = rate.getValue() / rate.getNominal();
+            return amount * rateFrom;
+        }
+
+        CurrencyModel fromModel = self.getCurrency(from);
+        double rateFrom = fromModel.getValue() / fromModel.getNominal();
+
+        CurrencyModel toModel = self.getCurrency(to);
+        double rateTo = toModel.getValue() / toModel.getNominal();
+
+        return amount * (rateFrom / rateTo);
+    }
+
     @Cacheable("currencyList")
     public String getFormattedCurrencyList() throws IOException {
         Gson gson = new Gson();
@@ -61,7 +89,7 @@ public class CurrencyService {
         JsonObject valutes = root.getAsJsonObject("Valute");
 
         StringBuilder result = new StringBuilder();
-        result.append("Доступные валюты ЦБ РФ:*\n\n");
+        result.append("Доступные валюты ЦБ РФ:\n\n");
 
         List<String> currencyCodes = new ArrayList<>(valutes.keySet());
         Collections.sort(currencyCodes);
@@ -86,8 +114,8 @@ public class CurrencyService {
 
         result.append("\n\nВсего: ").append(valutes.size()).append(" валют");
         result.append("\n Данные на: ").append(root.get("Date").getAsString());
-        result.append("\n\n💡 *Используйте код валюты для получения курса*");
-        result.append("\nНапример: `USD` или `/curse`");
+        result.append("\n\n💡 Используйте код валюты для получения курса");
+        result.append("\nНапример: USD или /curse USD");
 
         return result.toString();
     }
