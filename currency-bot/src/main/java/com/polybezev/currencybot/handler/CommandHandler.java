@@ -38,7 +38,7 @@ public class CommandHandler {
             case "/start" -> msg(chatId, formatter.buildStartText(userName), formatter.buildMainKeyboard());
             case "/help" -> msg(chatId, formatter.buildHelpText());
             case "/list" -> handleList(chatId);
-            case "/curse" -> arg.isEmpty() ? handleList(chatId) : handleCurrencyRequest(arg.toUpperCase(), chatId);
+            case "/curse" -> arg.isEmpty() ? showCurseKeyboard(chatId) : handleCurrencyRequest(arg.toUpperCase(), chatId);
             case "/convert" -> arg.isEmpty() ? startConvertFsm(chatId) : handleConvert(arg, chatId);
             case "/btc" -> handleBtc(chatId);
             default -> msg(chatId, BotMessages.UNKNOWN_COMMAND);
@@ -170,5 +170,9 @@ public class CommandHandler {
         UserConversationData data = userStateService.getOrCreate(chatId);
         data.setState(ConversationState.AWAIT_AMOUNT);
         return msg(chatId, BotMessages.CONVERT_AWAIT_AMOUNT);
+    }
+
+    private SendMessage showCurseKeyboard(long chatId) {
+        return msg(chatId, "Выберите валюту: ", formatter.buildConvertKeyboard());
     }
 }
