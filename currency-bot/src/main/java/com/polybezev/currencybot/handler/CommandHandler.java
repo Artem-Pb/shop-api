@@ -1,5 +1,6 @@
 package com.polybezev.currencybot.handler;
 
+import com.polybezev.currencybot.formatter.BotMessages;
 import com.polybezev.currencybot.formatter.MessageFormatter;
 import com.polybezev.currencybot.model.ConversationState;
 import com.polybezev.currencybot.model.CryptoPriceModel;
@@ -38,7 +39,7 @@ public class CommandHandler {
             case "/curse" -> arg.isEmpty() ? handleList(chatId) : handleCurrencyRequest(arg.toUpperCase(), chatId);
             case "/convert" -> arg.isEmpty() ? startConvertFsm(chatId) : handleConvert(arg, chatId);
             case "/btc" -> handleBtc(chatId);
-            default -> msg(chatId, "Неизвестная команда. Используйте /help");
+            default -> msg(chatId, BotMessages.UNKNOWN_COMMAND);
         };
     }
 
@@ -71,9 +72,9 @@ public class CommandHandler {
     private SendMessage handleList(long chatId) {
         try {
             String list = currencyService.getFormattedCurrencyList();
-            return msg(chatId, list, formatter.buildCurrencyKeyboard());
+            return msg(chatId, list, formatter.buildConvertKeyboard());
         } catch (IOException e) {
-            return msg(chatId, "Не удалось загрузить список валют. Проверьте соединение.");
+            return msg(chatId, BotMessages.LIST_ERROR);
         }
     }
 
@@ -81,7 +82,7 @@ public class CommandHandler {
         String[] parts = arg.split("\\s+");
 
         if (parts.length != 3) {
-            return msg(chatId, "Формат: /convert 100 USD RUB");
+            return msg(chatId, BotMessages.CONVERT_FORMAT_ERROR);
         }
 
         try {
@@ -90,16 +91,13 @@ public class CommandHandler {
             String to = parts[2].toUpperCase();
 
             double result = currencyService.convertCurrency(amount, from, to);
-            String text = formatter.formatAmount(amount, from) + " " + from + " = "
-                    + formatter.formatAmount(result, to) + " " + to;
-
-            return msg(chatId, text);
+            return msg(chatId, formatter.buildConvertResult(amount, from, result, to));
 
         } catch (NumberFormatException e) {
-            return msg(chatId, "Сумма должна быть числом. Пример: /convert 100 USD RUB");
+            return msg(chatId, BotMessages.CONVERT_AMOUNT_ERROR);
 
         } catch (Exception e) {
-            return msg(chatId, "❌" + e.getMessage());
+            return msg(chatId, BotMessages.CONVERT_ERROR);
         }
     }
 
@@ -109,7 +107,7 @@ public class CommandHandler {
             model.setSymbol("BTC");
             return msg(chatId, formatter.buildCryptoCard(model));
         } catch (IOException e) {
-            return msg(chatId, "Не получилось получить цену BTC! Попробуйте позже!");
+            return msg(chatId, BotMessages.BTC_ERROR);
         }
     }
 
@@ -120,30 +118,28 @@ public class CommandHandler {
                     double amount = Double.parseDouble(text);
                     data.setAmount(amount);
                     data.setState(ConversationState.AWAIT_FROM);
-                    yield msg(chatId, "Выберите исходную валюту", formatter.buildCurrencyKeyboard());
+                    yield msg(chatId, BotMessages.CONVERT_AWAIT_FROM, formatter.buildConvertKeyboard());
                 } catch (NumberFormatException e) {
-                    yield msg(chatId, "Введите число! Например: 100");
+                    yield msg(chatId, BotMessages.CONVERT_AMOUNT_INVALID);
                 }
             }
             case AWAIT_FROM   -> {
                 data.setFromCurrency(text);
                 data.setState(ConversationState.AWAIT_TO);
-                yield msg(chatId, "Выберите целевую валюту", formatter.buildCurrencyKeyboard());
+                yield msg(chatId, BotMessages.CONVERT_AWAIT_TO, formatter.buildConvertKeyboard());
             }
             case AWAIT_TO     -> {
                 double amount = data.getAmount();
                 String from = data.getFromCurrency();
                 try {
                     double result = currencyService.convertCurrency(amount, from, text);
-                    String resText = formatter.formatAmount(amount, from) + " " + from + " = "
-                            + formatter.formatAmount(result, text) + " " + text;
                     userStateService.reset(chatId);
-                    yield msg(chatId, resText);
+                    yield msg(chatId, formatter.buildConvertResult(amount, from, result, text));
                 } catch (IOException e) {
-                    yield msg(chatId, "Не удалось выполнить конвертацию. Попробуйте снова.");
+                    yield msg(chatId, BotMessages.CONVERT_ERROR);
                 }
             }
-            default           -> msg(chatId, "Что-то пошло не так. Начните заново");
+            default           -> msg(chatId, BotMessages.CONVERT_FSM_ERROR);
         };
     }
 
@@ -165,6 +161,6 @@ public class CommandHandler {
     private SendMessage startConvertFsm(long chatId) {
         UserConversationData data = userStateService.getOrCreate(chatId);
         data.setState(ConversationState.AWAIT_AMOUNT);
-        return msg(chatId, "Введите сумму для конвертации");
+        return msg(chatId, BotMessages.CONVERT_AWAIT_AMOUNT);
     }
 }

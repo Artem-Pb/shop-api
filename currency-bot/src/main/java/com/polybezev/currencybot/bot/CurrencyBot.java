@@ -73,7 +73,9 @@ public class CurrencyBot extends TelegramLongPollingBot {
         UserConversationData fsm = userStateService.getOrCreate(chatId);
         if (fsm.getState() == ConversationState.AWAIT_FROM || fsm.getState() == ConversationState.AWAIT_TO) {
             send(commandHandler.handleFsmInput(data, chatId, fsm));
-        } else {
+        } else if (data.equals("BTC")) {
+            send(commandHandler.handleBtc(chatId));
+        }else {
             send(commandHandler.handleCurrencyRequest(data, chatId));
         }
 }

@@ -20,12 +20,13 @@ public class MessageFormatter {
 
     // ==================== KEYBOARDS ====================
 
-    public InlineKeyboardMarkup buildCurrencyKeyboard() {
+    public InlineKeyboardMarkup buildConvertKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(row(btn("🇺🇸 USD", "USD"), btn("🇪🇺 EUR", "EUR"), btn("🇨🇳 CNY", "CNY")));
         rows.add(row(btn("🇬🇧 GBP", "GBP"), btn("🇯🇵 JPY", "JPY"), btn("🇨🇭 CHF", "CHF")));
         rows.add(row(btn("🇹🇷 TRY", "TRY"), btn("🇦🇪 AED", "AED"), btn("🇰🇿 KZT", "KZT")));
         rows.add(row(btn("🇧🇾 BYN", "BYN"), btn("🇨🇦 CAD", "CAD"), btn("🇭🇰 HKD", "HKD")));
+        rows.add(row(btn("₿ BTC", "BTC")));
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(rows);
@@ -68,19 +69,25 @@ public class MessageFormatter {
 
     public String buildStartText(String name) {
         return "👋 Привет, " + name + "!\n\n" +
-                "Я покажу курсы ЦБ РФ в реальном времени.\n\n" +
-                "📌 Команды:\n" +
-                "  /curse USD — курс валюты\n" +
-                "  /list — все доступные валюты\n\n" +
-                "Или просто напиши код: USD, EUR, CNY";
+                "Я помогаю следить за курсами валют и крипты — быстро и без лишнего шума.\n\n" +
+                "Что умею бесплатно:\n" +
+                "• /curse USD — курс любой валюты по данным ЦБ РФ\n" +
+                "• /convert 100 USD RUB — конвертер на лету\n" +
+                "• /btc — курс биткоина в ₽ и $\n" +
+                "• /list — все доступные валюты\n\n" +
+                "Или просто напиши код: USD, EUR, CNY — отвечу сразу.\n\n" +
+                "Кнопки меню внизу — там тоже всё есть 👇\n\n" +
+                "Хочешь AI-прогнозы и торговые сигналы? → /tier";
     }
 
     public String buildHelpText() {
-        return "📋 Команды бота:\n\n" +
-                "/curse [CODE] — курс валюты\n" +
-                "  Пример: /curse USD\n\n" +
-                "/list — все валюты ЦБ РФ\n\n" +
-                "Или напиши код напрямую: USD, EUR, CNY...";
+        return BotMessages.HELP_TEXT;
+    }
+
+    public String buildConvertResult(double amount, String from, double result, String to) {
+        String source = (from.equals("BTC") || to.equals("BTC")) ? "CoinGecko" : "ЦБ РФ";
+        return "💱 " + formatAmount(amount, from) + " " + from + " = " + formatAmount(result, to) + " " + to + "\n\n" +
+                "Курс: " + source;
     }
 
     public String buildRateCard(CurrencyModel c) {
@@ -102,15 +109,13 @@ public class MessageFormatter {
     }
 
     public String buildCurrencyNotFoundText(String code) {
-        return "❌ Валюта " + code + " не найдена.\n" +
-                "Проверьте код и попробуйте снова.\n\n" +
-                "Все доступные валюты: /list";
+        return "🔍 Валюта " + code + " не найдена.\n\n" +
+                "Возможно, опечатка — коды пишутся латиницей: USD, EUR, CNY.\n" +
+                "Полный список доступных валют: /list";
     }
 
     public String buildUnknownInputText() {
-        return "🤔 Не понял запрос.\n\n" +
-                "Попробуйте: USD, EUR, CNY\n" +
-                "Или команды: /help, /list";
+        return BotMessages.UNKNOWN_INPUT;
     }
 
     // ==================== PRIVATE HELPERS ====================
