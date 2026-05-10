@@ -81,12 +81,9 @@ public class CommandHandler {
             String from = parts[1].toUpperCase();
             String to = parts[2].toUpperCase();
 
-            if (from.equals("BTC") || to.equals("BTC")) {
-                return handleBtcConvert(chatId, amount, from, to);
-            }
-
             double result = currencyService.convertCurrency(amount, from, to);
-            String text = String.format("Вы получите по ЦБ: %.2f %s = %.2f %s", amount, from, result, to);
+            String text = formatter.formatAmount(amount, from) + " " + from + " = "
+                    + formatter.formatAmount(result, to) + " " + to;
 
             return msg(chatId, text);
 
@@ -105,29 +102,6 @@ public class CommandHandler {
             return msg(chatId, formatter.buildCryptoCard(model));
         } catch (IOException e) {
             return msg(chatId, "Не получилось получить цену BTC! Попробуйте позже!");
-        }
-    }
-
-    private SendMessage handleBtcConvert(long chatId, double amount, String from, String to) {
-        try {
-            CryptoPriceModel model = cryptoService.getCryptoPrice("bitcoin");
-            double result;
-            if (to.equals("RUB")) {
-                result = amount * model.getPriceRub();
-            } else if (from.equals("RUB")) {
-                result = amount / model.getPriceRub();
-            } else if (to.equals("USD")) {
-                result = amount * model.getPriceUsd();
-            } else if (from.equals("USD")) {
-                result = amount / model.getPriceUsd();
-            } else {
-                return msg(chatId, "BTC можно конвертировать только в RUB или USD");
-            }
-
-            return msg(chatId, formatter.formatAmount(amount, from) + " " + from + " = "
-                    + formatter.formatAmount(result, to) + " " + to);
-        } catch (Exception e) {
-            return msg(chatId, "Не получилось узнать актуальный курс, приходите позже.");
         }
     }
 

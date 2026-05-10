@@ -23,6 +23,9 @@ public class CurrencyService {
     @Lazy
     private CurrencyService self;
 
+    @Autowired
+    private CryptoService cryptoService;
+
     @Cacheable("currency")
     public CurrencyModel getCurrency(String currencyCode) throws IOException {
         Gson gson = new Gson();
@@ -56,30 +59,12 @@ public class CurrencyService {
     }
 
     public double convertCurrency(double amount, String from, String to) throws IOException {
-        if (from.equals("RUB")) {
-            CurrencyModel rate = self.getCurrency(to);
-            double rateTo = rate.getValue() / rate.getNominal();
-            return amount / rateTo;
-        }
-
-        if (to.equals("RUB")) {
-            CurrencyModel rate = self.getCurrency(from);
-            double rateFrom = rate.getValue() / rate.getNominal();
-            return amount * rateFrom;
-        }
-
-        CurrencyModel fromModel = self.getCurrency(from);
-        double rateFrom = fromModel.getValue() / fromModel.getNominal();
-
-        CurrencyModel toModel = self.getCurrency(to);
-        double rateTo = toModel.getValue() / toModel.getNominal();
-
-        return amount * (rateFrom / rateTo);
+        double rub = toRub(amount, from);
+        return fromRub(rub, to);
     }
 
     @Cacheable("currencyList")
     public String getFormattedCurrencyList() throws IOException {
-        Gson gson = new Gson();
         URL url = new URL("https://www.cbr-xml-daily.ru/daily_json.js");
 
         JsonObject root = JsonParser.parseReader(
@@ -121,19 +106,41 @@ public class CurrencyService {
     }
 
     private static String getCurrencyEmoji(String currencyCode) {
-        switch (currencyCode) {
-            case "USD": return "🇺🇸";
-            case "EUR": return "🇪🇺";
-            case "GBP": return "🇬🇧";
-            case "JPY": return "🇯🇵";
-            case "CNY": return "🇨🇳";
-            case "CHF": return "🇨🇭";
-            case "CAD": return "🇨🇦";
-            case "AUD": return "🇦🇺";
-            case "NZD": return "🇳🇿";
-            case "RUB": return "🇷🇺";
-            case "BYN": return "\uD83C\uDDE7\uD83C\uDDFE";
-            default: return "•";
+        return switch (currencyCode) {
+            case "USD" -> "🇺🇸";
+            case "EUR" -> "🇪🇺";
+            case "GBP" -> "🇬🇧";
+            case "JPY" -> "🇯🇵";
+            case "CNY" -> "🇨🇳";
+            case "CHF" -> "🇨🇭";
+            case "CAD" -> "🇨🇦";
+            case "AUD" -> "🇦🇺";
+            case "NZD" -> "🇳🇿";
+            case "RUB" -> "🇷🇺";
+            case "BYN" -> "\uD83C\uDDE7\uD83C\uDDFE";
+            default -> "•";
+        };
+    }
+
+    private double toRub(double amount, String currency) throws IOException {
+        if (currency.equals("RUB")) {
+            return amount;
+        } else if (currency.equals("BTC")) {
+            return amount * cryptoService.getCryptoPrice("bitcoin").getPriceRub();
         }
+
+        CurrencyModel rate = self.getCurrency(currency);
+        return amount * rate.getValue() / rate.getNominal();
+    }
+
+    private double fromRub(double amountRub, String currency) throws IOException {
+        if (currency.equals("RUB")) {
+            return amountRub;
+        } else if (currency.equals("BTC")) {
+            return amountRub / cryptoService.getCryptoPrice("bitcoin").getPriceRub();
+        }
+
+        CurrencyModel rate = self.getCurrency(currency);
+        return amountRub / (rate.getValue() / rate.getNominal());
     }
 }
