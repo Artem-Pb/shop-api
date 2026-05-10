@@ -4,7 +4,10 @@ import com.polybezev.currencybot.model.CryptoPriceModel;
 import com.polybezev.currencybot.model.CurrencyModel;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -26,6 +29,18 @@ public class MessageFormatter {
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         markup.setKeyboard(rows);
+        return markup;
+    }
+
+    public ReplyKeyboardMarkup buildMainKeyboard() {
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("📊 Курсы"));
+        row1.add(new KeyboardButton("💱 Конвертер"));
+        row1.add(new KeyboardButton("₿ BTC"));
+
+        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+        markup.setKeyboard(List.of(row1));
+        markup.setResizeKeyboard(true);
         return markup;
     }
 

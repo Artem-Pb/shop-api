@@ -11,7 +11,7 @@ import com.polybezev.currencybot.service.UserStateService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 
 import java.io.IOException;
 
@@ -32,7 +32,7 @@ public class CommandHandler {
         String arg = parts.length > 1 ? parts[1].trim() : "";
 
         return switch (cmd) {
-            case "/start" -> msg(chatId, formatter.buildStartText(userName), formatter.buildCurrencyKeyboard());
+            case "/start" -> msg(chatId, formatter.buildStartText(userName), formatter.buildMainKeyboard());
             case "/help" -> msg(chatId, formatter.buildHelpText());
             case "/list" -> handleList(chatId);
             case "/curse" -> arg.isEmpty() ? handleList(chatId) : handleCurrencyRequest(arg.toUpperCase(), chatId);
@@ -43,6 +43,10 @@ public class CommandHandler {
     }
 
     public SendMessage handleText(String text, long chatId) {
+        if (text.equals("📊 Курсы")) return handleList(chatId);
+        if (text.equals("💱 Конвертер")) return startConvertFsm(chatId);
+        if (text.equals("₿ BTC")) return handleBtc(chatId);
+
         String upper = text.toUpperCase().trim();
 
         if (upper.matches("[A-Z]{3}")) return handleCurrencyRequest(upper, chatId);
@@ -152,7 +156,7 @@ public class CommandHandler {
         return message;
     }
 
-    private SendMessage msg(long chatId, String text, InlineKeyboardMarkup keyboard) {
+    private SendMessage msg(long chatId, String text, ReplyKeyboard keyboard) {
         SendMessage message = msg(chatId, text);
         message.setReplyMarkup(keyboard);
         return message;
