@@ -29,12 +29,12 @@ public class CommandHandler {
 
         return switch (cmd) {
             case "/start" -> msg(chatId, formatter.buildStartText(userName), formatter.buildCurrencyKeyboard());
-            case "/help"  -> msg(chatId, formatter.buildHelpText());
-            case "/list"  -> handleList(chatId);
+            case "/help" -> msg(chatId, formatter.buildHelpText());
+            case "/list" -> handleList(chatId);
             case "/curse" -> arg.isEmpty() ? handleList(chatId) : handleCurrencyRequest(arg.toUpperCase(), chatId);
             case "/convert" -> handleConvert(arg, chatId);
             case "/btc" -> handleBtc(chatId);
-            default       -> msg(chatId, "Неизвестная команда. Используйте /help");
+            default -> msg(chatId, "Неизвестная команда. Используйте /help");
         };
     }
 
@@ -42,9 +42,9 @@ public class CommandHandler {
         String upper = text.toUpperCase().trim();
 
         if (upper.matches("[A-Z]{3}")) return handleCurrencyRequest(upper, chatId);
-        if (upper.contains("ДОЛЛАР"))  return handleCurrencyRequest("USD", chatId);
-        if (upper.contains("ЕВРО"))    return handleCurrencyRequest("EUR", chatId);
-        if (upper.contains("ЮАНЬ"))    return handleCurrencyRequest("CNY", chatId);
+        if (upper.contains("ДОЛЛАР")) return handleCurrencyRequest("USD", chatId);
+        if (upper.contains("ЕВРО")) return handleCurrencyRequest("EUR", chatId);
+        if (upper.contains("ЮАНЬ")) return handleCurrencyRequest("CNY", chatId);
 
         return msg(chatId, formatter.buildUnknownInputText());
     }
@@ -79,7 +79,11 @@ public class CommandHandler {
         try {
             double amount = Double.parseDouble(parts[0]);
             String from = parts[1].toUpperCase();
-            String to   = parts[2].toUpperCase();
+            String to = parts[2].toUpperCase();
+
+            if (from.equals("BTC") || to.equals("BTC")) {
+                return handleBtcConvert(chatId, amount, from, to);
+            }
 
             double result = currencyService.convertCurrency(amount, from, to);
             String text = String.format("Вы получите по ЦБ: %.2f %s = %.2f %s", amount, from, result, to);
@@ -101,6 +105,29 @@ public class CommandHandler {
             return msg(chatId, formatter.buildCryptoCard(model));
         } catch (IOException e) {
             return msg(chatId, "Не получилось получить цену BTC! Попробуйте позже!");
+        }
+    }
+
+    private SendMessage handleBtcConvert(long chatId, double amount, String from, String to) {
+        try {
+            CryptoPriceModel model = cryptoService.getCryptoPrice("bitcoin");
+            double result;
+            if (to.equals("RUB")) {
+                result = amount * model.getPriceRub();
+            } else if (from.equals("RUB")) {
+                result = amount / model.getPriceRub();
+            } else if (to.equals("USD")) {
+                result = amount * model.getPriceUsd();
+            } else if (from.equals("USD")) {
+                result = amount / model.getPriceUsd();
+            } else {
+                return msg(chatId, "BTC можно конвертировать только в RUB или USD");
+            }
+
+            return msg(chatId, formatter.formatAmount(amount, from) + " " + from + " = "
+                    + formatter.formatAmount(result, to) + " " + to);
+        } catch (Exception e) {
+            return msg(chatId, "Не получилось узнать актуальный курс, приходите позже.");
         }
     }
 

@@ -135,4 +135,10 @@ public class MessageFormatter {
     private List<InlineKeyboardButton> row(InlineKeyboardButton... buttons) {
         return new ArrayList<>(Arrays.asList(buttons));
     }
+
+    public String formatAmount(double value, String currency) {
+        return currency.equals("BTC")
+                ? String.format("%.10f", value)
+                : String.format("%.2f", value);
+    }
 }
