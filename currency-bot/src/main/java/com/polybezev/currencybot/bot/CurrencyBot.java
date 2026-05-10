@@ -65,6 +65,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
     private void handleCallback(Update update) {
         long chatId = update.getCallbackQuery().getMessage().getChatId();
         String data = update.getCallbackQuery().getData();
+        log.info("User {} pressed button: {}", chatId, data);
 
         try {
             AnswerCallbackQuery answer = new AnswerCallbackQuery();
