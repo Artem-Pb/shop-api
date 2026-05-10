@@ -10,6 +10,7 @@ import com.polybezev.currencybot.service.CryptoService;
 import com.polybezev.currencybot.service.CurrencyService;
 import com.polybezev.currencybot.service.UserStateService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
@@ -18,6 +19,7 @@ import java.io.IOException;
 
 @Component
 @AllArgsConstructor
+@Slf4j
 public class CommandHandler {
 
     private final CurrencyService currencyService;
@@ -65,6 +67,7 @@ public class CommandHandler {
             CurrencyModel currency = currencyService.getCurrency(code);
             return msg(chatId, formatter.buildRateCard(currency));
         } catch (Exception e) {
+            log.warn("Currency not found: {} for user {}", code, chatId);
             return msg(chatId, formatter.buildCurrencyNotFoundText(code));
         }
     }
@@ -74,6 +77,7 @@ public class CommandHandler {
             String list = currencyService.getFormattedCurrencyList();
             return msg(chatId, list, formatter.buildConvertKeyboard());
         } catch (IOException e) {
+            log.error("API unavailable for user {}: {}", chatId, e.getMessage(), e);
             return msg(chatId, BotMessages.LIST_ERROR);
         }
     }
@@ -94,9 +98,11 @@ public class CommandHandler {
             return msg(chatId, formatter.buildConvertResult(amount, from, result, to));
 
         } catch (NumberFormatException e) {
+            log.warn("Invalid amount input from user {}: {}", chatId, e.getMessage());
             return msg(chatId, BotMessages.CONVERT_AMOUNT_ERROR);
 
         } catch (Exception e) {
+            log.error("API unavailable for user {}: {}", chatId, e.getMessage(), e);
             return msg(chatId, BotMessages.CONVERT_ERROR);
         }
     }
@@ -107,6 +113,7 @@ public class CommandHandler {
             model.setSymbol("BTC");
             return msg(chatId, formatter.buildCryptoCard(model));
         } catch (IOException e) {
+            log.error("API unavailable for user {}: {}", chatId, e.getMessage(), e);
             return msg(chatId, BotMessages.BTC_ERROR);
         }
     }
@@ -136,6 +143,7 @@ public class CommandHandler {
                     userStateService.reset(chatId);
                     yield msg(chatId, formatter.buildConvertResult(amount, from, result, text));
                 } catch (IOException e) {
+                    log.error("API unavailable for user {}: {}", chatId, e.getMessage(), e);
                     yield msg(chatId, BotMessages.CONVERT_ERROR);
                 }
             }

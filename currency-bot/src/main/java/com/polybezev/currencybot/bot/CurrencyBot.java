@@ -7,6 +7,7 @@ import com.polybezev.currencybot.model.UserConversationData;
 import com.polybezev.currencybot.service.UserStateService;
 import com.polybezev.currencybot.util.UserInfoExtractor;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
@@ -16,6 +17,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
 @AllArgsConstructor
+@Slf4j
 public class CurrencyBot extends TelegramLongPollingBot {
 
     private final BotConfig botConfig;
@@ -44,6 +46,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
 
         String text = update.getMessage().getText();
         long chatId = update.getMessage().getChatId();
+        log.info("User {} sent: {}", chatId, text);
         String userName = UserInfoExtractor.getFirstName(update);
         UserConversationData data = userStateService.getOrCreate(chatId);
 
@@ -86,7 +89,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            System.err.println("❌ Ошибка отправки: " + e.getMessage());
+            log.error("Ошибка отправки сообщения пользователю {}: {}", message.getChatId(), e.getMessage(), e);
         }
     }
 }

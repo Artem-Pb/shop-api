@@ -4,6 +4,7 @@ import com.polybezev.currencybot.model.CurrencyModel;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
@@ -17,6 +18,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
+@Slf4j
 public class CurrencyService {
 
     @Autowired
@@ -52,7 +54,7 @@ public class CurrencyService {
             Date date = sdf.parse(dateStr);
             model.setDate(date);
         } catch (ParseException e) {
-            System.err.println("Ошибка выгрузки даты: " + dateStr);
+            log.warn("Failed to parse date from CBR response: {}", dateStr);
         }
 
         return model;
