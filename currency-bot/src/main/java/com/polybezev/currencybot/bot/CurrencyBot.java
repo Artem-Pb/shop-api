@@ -2,6 +2,9 @@ package com.polybezev.currencybot.bot;
 
 import com.polybezev.currencybot.config.BotConfig;
 import com.polybezev.currencybot.handler.CommandHandler;
+import com.polybezev.currencybot.model.ConversationState;
+import com.polybezev.currencybot.model.UserConversationData;
+import com.polybezev.currencybot.service.UserStateService;
 import com.polybezev.currencybot.util.UserInfoExtractor;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,12 +20,17 @@ public class CurrencyBot extends TelegramLongPollingBot {
 
     private final BotConfig botConfig;
     private final CommandHandler commandHandler;
+    private final UserStateService userStateService;
 
     @Override
-    public String getBotUsername() { return botConfig.getBotName(); }
+    public String getBotUsername() {
+        return botConfig.getBotName();
+    }
 
     @Override
-    public String getBotToken() { return botConfig.getToken(); }
+    public String getBotToken() {
+        return botConfig.getToken();
+    }
 
     // ==================== ROUTING ====================
 
@@ -34,29 +42,41 @@ public class CurrencyBot extends TelegramLongPollingBot {
         }
         if (!update.hasMessage() || !update.getMessage().hasText()) return;
 
-        String text     = update.getMessage().getText();
-        long   chatId   = update.getMessage().getChatId();
+        String text = update.getMessage().getText();
+        long chatId = update.getMessage().getChatId();
         String userName = UserInfoExtractor.getFirstName(update);
+        UserConversationData data = userStateService.getOrCreate(chatId);
 
-        SendMessage response = text.startsWith("/")
-                ? commandHandler.handleCommand(text, chatId, userName)
-                : commandHandler.handleText(text, chatId);
+        SendMessage response;
+        if (data.getState() != ConversationState.IDLE) {
+            response = commandHandler.handleFsmInput(text, chatId, data);
+        } else if (text.startsWith("/")) {
+            response = commandHandler.handleCommand(text, chatId, userName);
+        } else {
+            response = commandHandler.handleText(text, chatId);
+        }
 
         send(response);
     }
 
     private void handleCallback(Update update) {
-        long   chatId = update.getCallbackQuery().getMessage().getChatId();
-        String data   = update.getCallbackQuery().getData();
+        long chatId = update.getCallbackQuery().getMessage().getChatId();
+        String data = update.getCallbackQuery().getData();
 
         try {
             AnswerCallbackQuery answer = new AnswerCallbackQuery();
             answer.setCallbackQueryId(update.getCallbackQuery().getId());
             execute(answer);
-        } catch (TelegramApiException ignored) {}
+        } catch (TelegramApiException ignored) {
+        }
 
-        send(commandHandler.handleCurrencyRequest(data, chatId));
-    }
+        UserConversationData fsm = userStateService.getOrCreate(chatId);
+        if (fsm.getState() == ConversationState.AWAIT_FROM || fsm.getState() == ConversationState.AWAIT_TO) {
+            send(commandHandler.handleFsmInput(data, chatId, fsm));
+        } else {
+            send(commandHandler.handleCurrencyRequest(data, chatId));
+        }
+}
 
     // ==================== MESSAGING ====================
 

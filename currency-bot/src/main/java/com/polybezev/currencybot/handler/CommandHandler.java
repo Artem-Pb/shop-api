@@ -1,10 +1,13 @@
 package com.polybezev.currencybot.handler;
 
 import com.polybezev.currencybot.formatter.MessageFormatter;
+import com.polybezev.currencybot.model.ConversationState;
 import com.polybezev.currencybot.model.CryptoPriceModel;
 import com.polybezev.currencybot.model.CurrencyModel;
+import com.polybezev.currencybot.model.UserConversationData;
 import com.polybezev.currencybot.service.CryptoService;
 import com.polybezev.currencybot.service.CurrencyService;
+import com.polybezev.currencybot.service.UserStateService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -19,6 +22,7 @@ public class CommandHandler {
     private final CurrencyService currencyService;
     private final MessageFormatter formatter;
     private final CryptoService cryptoService;
+    private final UserStateService userStateService;
 
     // ==================== ENTRY POINTS ====================
 
@@ -32,7 +36,7 @@ public class CommandHandler {
             case "/help" -> msg(chatId, formatter.buildHelpText());
             case "/list" -> handleList(chatId);
             case "/curse" -> arg.isEmpty() ? handleList(chatId) : handleCurrencyRequest(arg.toUpperCase(), chatId);
-            case "/convert" -> handleConvert(arg, chatId);
+            case "/convert" -> arg.isEmpty() ? startConvertFsm(chatId) : handleConvert(arg, chatId);
             case "/btc" -> handleBtc(chatId);
             default -> msg(chatId, "Неизвестная команда. Используйте /help");
         };
@@ -105,6 +109,40 @@ public class CommandHandler {
         }
     }
 
+    public SendMessage handleFsmInput(String text, long chatId, UserConversationData data) {
+        return switch (data.getState()) {
+            case AWAIT_AMOUNT -> {
+                try {
+                    double amount = Double.parseDouble(text);
+                    data.setAmount(amount);
+                    data.setState(ConversationState.AWAIT_FROM);
+                    yield msg(chatId, "Выберите исходную валюту", formatter.buildCurrencyKeyboard());
+                } catch (NumberFormatException e) {
+                    yield msg(chatId, "Введите число! Например: 100");
+                }
+            }
+            case AWAIT_FROM   -> {
+                data.setFromCurrency(text);
+                data.setState(ConversationState.AWAIT_TO);
+                yield msg(chatId, "Выберите целевую валюту", formatter.buildCurrencyKeyboard());
+            }
+            case AWAIT_TO     -> {
+                double amount = data.getAmount();
+                String from = data.getFromCurrency();
+                try {
+                    double result = currencyService.convertCurrency(amount, from, text);
+                    String resText = formatter.formatAmount(amount, from) + " " + from + " = "
+                            + formatter.formatAmount(result, text) + " " + text;
+                    userStateService.reset(chatId);
+                    yield msg(chatId, resText);
+                } catch (IOException e) {
+                    yield msg(chatId, "Не удалось выполнить конвертацию. Попробуйте снова.");
+                }
+            }
+            default           -> msg(chatId, "Что-то пошло не так. Начните заново");
+        };
+    }
+
     // ==================== BUILDERS ====================
 
     private SendMessage msg(long chatId, String text) {
@@ -118,5 +156,11 @@ public class CommandHandler {
         SendMessage message = msg(chatId, text);
         message.setReplyMarkup(keyboard);
         return message;
+    }
+
+    private SendMessage startConvertFsm(long chatId) {
+        UserConversationData data = userStateService.getOrCreate(chatId);
+        data.setState(ConversationState.AWAIT_AMOUNT);
+        return msg(chatId, "Введите сумму для конвертации");
     }
 }
