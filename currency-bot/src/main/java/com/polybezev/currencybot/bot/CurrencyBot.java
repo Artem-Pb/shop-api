@@ -1,9 +1,13 @@
 package com.polybezev.currencybot.bot;
 
 import com.polybezev.currencybot.config.BotConfig;
+import com.polybezev.currencybot.formatter.BotMessages;
 import com.polybezev.currencybot.handler.CommandHandler;
+import com.polybezev.currencybot.handler.PaymentHandler;
 import com.polybezev.currencybot.model.ConversationState;
+import com.polybezev.currencybot.model.Tier;
 import com.polybezev.currencybot.model.UserConversationData;
+import com.polybezev.currencybot.service.SubscriptionService;
 import com.polybezev.currencybot.service.UserStateService;
 import com.polybezev.currencybot.util.UserInfoExtractor;
 import lombok.AllArgsConstructor;
@@ -11,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -23,6 +28,8 @@ public class CurrencyBot extends TelegramLongPollingBot {
     private final BotConfig botConfig;
     private final CommandHandler commandHandler;
     private final UserStateService userStateService;
+    private final SubscriptionService subscriptionService;
+    private final PaymentHandler paymentHandler;
 
     @Override
     public String getBotUsername() {
@@ -38,23 +45,45 @@ public class CurrencyBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+
+        if (update.hasPreCheckoutQuery()) {
+            AnswerPreCheckoutQuery answer = new AnswerPreCheckoutQuery();
+            answer.setPreCheckoutQueryId(update.getPreCheckoutQuery().getId());
+            answer.setOk(true);
+            try {
+                execute(answer);
+            } catch (TelegramApiException ignored) {
+            }
+            return;
+        }
+
         if (update.hasCallbackQuery()) {
             handleCallback(update);
+            return;
+        }
+
+        if (update.getMessage().hasSuccessfulPayment()) {
+            long chatId = update.getMessage().getChatId();
+            paymentHandler.handleSuccessfulPayment(chatId, update.getMessage().getSuccessfulPayment());
+            Tier tier = Tier.valueOf(update.getMessage().getSuccessfulPayment().getInvoicePayload());
+            send(msg(chatId, BotMessages.STARS_SUCCESS.replace("{tierName}", tier.label)));
             return;
         }
         if (!update.hasMessage() || !update.getMessage().hasText()) return;
 
         String text = update.getMessage().getText();
         long chatId = update.getMessage().getChatId();
+        String username = UserInfoExtractor.getUserName(update);
+        String firstName = UserInfoExtractor.getFirstName(update);
+        subscriptionService.getOrCreateUser(chatId, username, firstName);
         log.info("User {} sent: {}", chatId, text);
-        String userName = UserInfoExtractor.getFirstName(update);
         UserConversationData data = userStateService.getOrCreate(chatId);
 
         SendMessage response;
         if (data.getState() != ConversationState.IDLE) {
             response = commandHandler.handleFsmInput(text, chatId, data);
         } else if (text.startsWith("/")) {
-            response = commandHandler.handleCommand(text, chatId, userName);
+            response = commandHandler.handleCommand(text, chatId, firstName);
         } else {
             response = commandHandler.handleText(text, chatId);
         }
@@ -79,7 +108,14 @@ public class CurrencyBot extends TelegramLongPollingBot {
             send(commandHandler.handleFsmInput(data, chatId, fsm));
         } else if (data.equals("BTC")) {
             send(commandHandler.handleBtc(chatId));
-        }else {
+        } else if (data.startsWith("BUY_")) {
+            Tier tier = Tier.valueOf(data.substring(4));
+            try {
+                execute(paymentHandler.sendInvoice(chatId, tier));
+            } catch (TelegramApiException e) {
+                log.error("Ошибка отправки инвойса {}: {}", chatId, e.getMessage(), e);
+            }
+        } else {
             send(commandHandler.handleCurrencyRequest(data, chatId));
         }
 }
@@ -92,5 +128,12 @@ public class CurrencyBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             log.error("Ошибка отправки сообщения пользователю {}: {}", message.getChatId(), e.getMessage(), e);
         }
+    }
+
+    private SendMessage msg(long chatId, String text) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setText(text);
+        return sendMessage;
     }
 }

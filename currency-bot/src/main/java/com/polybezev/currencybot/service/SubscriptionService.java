@@ -1,5 +1,6 @@
 package com.polybezev.currencybot.service;
 
+import com.polybezev.currencybot.model.PaymentProvider;
 import com.polybezev.currencybot.model.Tier;
 import com.polybezev.currencybot.model.User;
 import com.polybezev.currencybot.model.UserSubscription;
@@ -7,7 +8,9 @@ import com.polybezev.currencybot.repository.UserRepository;
 import com.polybezev.currencybot.repository.UserSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -40,5 +43,26 @@ public class SubscriptionService {
 
     public boolean hasAccess(Long chatId, Tier required) {
         return getActiveTier(chatId).ordinal() >= required.ordinal();
+    }
+
+    @Transactional
+    public void activateSubscription(Long chatId, Tier tier, int amountStars) {
+        User user = getOrCreateUser(chatId, null, null);
+
+        userSubscriptionRepository.findByUserAndActiveTrue(user)
+                .ifPresent(sub -> {
+                    sub.setActive(false);
+                    userSubscriptionRepository.save(sub);
+                });
+
+        UserSubscription sub = new UserSubscription();
+        sub.setUser(user);
+        sub.setTier(tier);
+        sub.setPaymentProvider(PaymentProvider.STARS);
+        sub.setAmountPaid(BigDecimal.valueOf(amountStars));
+        sub.setStartedAt(LocalDateTime.now());
+        sub.setExpiresAt(LocalDateTime.now().plusDays(30));
+        sub.setActive(true);
+        userSubscriptionRepository.save(sub);
     }
 }

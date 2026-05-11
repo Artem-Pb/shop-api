@@ -2,12 +2,10 @@ package com.polybezev.currencybot.handler;
 
 import com.polybezev.currencybot.formatter.BotMessages;
 import com.polybezev.currencybot.formatter.MessageFormatter;
-import com.polybezev.currencybot.model.ConversationState;
-import com.polybezev.currencybot.model.CryptoPriceModel;
-import com.polybezev.currencybot.model.CurrencyModel;
-import com.polybezev.currencybot.model.UserConversationData;
+import com.polybezev.currencybot.model.*;
 import com.polybezev.currencybot.service.CryptoService;
 import com.polybezev.currencybot.service.CurrencyService;
+import com.polybezev.currencybot.service.SubscriptionService;
 import com.polybezev.currencybot.service.UserStateService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +24,7 @@ public class CommandHandler {
     private final MessageFormatter formatter;
     private final CryptoService cryptoService;
     private final UserStateService userStateService;
+    private final SubscriptionService subscriptionService;
 
     // ==================== ENTRY POINTS ====================
 
@@ -41,13 +40,14 @@ public class CommandHandler {
             case "/curse" -> arg.isEmpty() ? showCurseKeyboard(chatId) : handleCurrencyRequest(arg.toUpperCase(), chatId);
             case "/convert" -> arg.isEmpty() ? startConvertFsm(chatId) : handleConvert(arg, chatId);
             case "/btc" -> handleBtc(chatId);
+            case "/tier" -> handleTier(chatId);
             default -> msg(chatId, BotMessages.UNKNOWN_COMMAND);
         };
     }
 
     public SendMessage handleText(String text, long chatId) {
         if (text.equals("📊 Курсы")) return handleList(chatId);
-        if (text.equals("💱 Конвертер")) return startConvertFsm(chatId);
+        if (text.equals("Конвертер")) return startConvertFsm(chatId);
         if (text.equals("₿ BTC")) return handleBtc(chatId);
 
         String upper = text.toUpperCase().trim();
@@ -151,6 +151,11 @@ public class CommandHandler {
         };
     }
 
+    private SendMessage handleTier(long chatId) {
+        Tier tier = subscriptionService.getActiveTier(chatId);
+        return msg(chatId, formatter.buildTierCard(tier), formatter.buildTierKeyboard());
+    }
+
     // ==================== BUILDERS ====================
 
     private SendMessage msg(long chatId, String text) {
@@ -173,6 +178,6 @@ public class CommandHandler {
     }
 
     private SendMessage showCurseKeyboard(long chatId) {
-        return msg(chatId, "Выберите валюту: ", formatter.buildRatesKeyboard());
+        return msg(chatId, BotMessages.CURSE_KEYBOARD_PROMPT, formatter.buildRatesKeyboard());
     }
 }

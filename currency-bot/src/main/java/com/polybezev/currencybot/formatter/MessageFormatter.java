@@ -2,6 +2,8 @@ package com.polybezev.currencybot.formatter;
 
 import com.polybezev.currencybot.model.CryptoPriceModel;
 import com.polybezev.currencybot.model.CurrencyModel;
+import com.polybezev.currencybot.model.Tier;
+import com.polybezev.currencybot.util.CurrencyFlags;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -49,13 +51,22 @@ public class MessageFormatter {
     public ReplyKeyboardMarkup buildMainKeyboard() {
         KeyboardRow row1 = new KeyboardRow();
         row1.add(new KeyboardButton("📊 Курсы"));
-        row1.add(new KeyboardButton("💱 Конвертер"));
+        row1.add(new KeyboardButton("Конвертер"));
         row1.add(new KeyboardButton("₿ BTC"));
 
         ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
         markup.setKeyboard(List.of(row1));
         markup.setResizeKeyboard(true);
         return markup;
+    }
+
+    public InlineKeyboardMarkup buildTierKeyboard() {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(row(btn("⚡ TIER 1 — 150 Stars", "BUY_TIER_1")));
+        rows.add(row(btn("📈 TIER 2 — 500 Stars", "BUY_TIER_2")));
+        rows.add(row(btn("🤖 TIER 3 — 1500 Stars", "BUY_TIER_3")));
+        return markup(rows);
+
     }
 
     // ==================== TEXTS ====================
@@ -81,16 +92,7 @@ public class MessageFormatter {
     }
 
     public String buildStartText(String name) {
-        return "👋 Привет, " + name + "!\n\n" +
-                "Я помогаю следить за курсами валют и крипты — быстро и без лишнего шума.\n\n" +
-                "Что умею бесплатно:\n" +
-                "• /curse USD — курс любой валюты по данным ЦБ РФ\n" +
-                "• /convert 100 USD RUB — конвертер на лету\n" +
-                "• /btc — курс биткоина в ₽ и $\n" +
-                "• /list — все доступные валюты\n\n" +
-                "Или просто напиши код: USD, EUR, CNY — отвечу сразу.\n\n" +
-                "Кнопки меню внизу — там тоже всё есть 👇\n\n" +
-                "Хочешь AI-прогнозы и торговые сигналы? → /tier";
+        return BotMessages.START_TEXT.replace("{name}", name);
     }
 
     public String buildHelpText() {
@@ -122,13 +124,15 @@ public class MessageFormatter {
     }
 
     public String buildCurrencyNotFoundText(String code) {
-        return "🔍 Валюта " + code + " не найдена.\n\n" +
-                "Возможно, опечатка — коды пишутся латиницей: USD, EUR, CNY.\n" +
-                "Полный список доступных валют: /list";
+        return BotMessages.CURRENCY_NOT_FOUND.replace("{code}", code);
     }
 
     public String buildUnknownInputText() {
         return BotMessages.UNKNOWN_INPUT;
+    }
+
+    public String buildTierCard(Tier current) {
+        return BotMessages.TIER_CARD.replace("{currentTierLabel}", current.label);
     }
 
     // ==================== PRIVATE HELPERS ====================
@@ -139,23 +143,7 @@ public class MessageFormatter {
     }
 
     private String getCountryFlag(String code) {
-        return switch (code) {
-            case "USD" -> "🇺🇸";
-            case "EUR" -> "🇪🇺";
-            case "GBP" -> "🇬🇧";
-            case "JPY" -> "🇯🇵";
-            case "CNY" -> "🇨🇳";
-            case "CHF" -> "🇨🇭";
-            case "CAD" -> "🇨🇦";
-            case "AUD" -> "🇦🇺";
-            case "NZD" -> "🇳🇿";
-            case "TRY" -> "🇹🇷";
-            case "AED" -> "🇦🇪";
-            case "KZT" -> "🇰🇿";
-            case "BYN" -> "🇧🇾";
-            case "HKD" -> "🇭🇰";
-            default -> "•";
-        };
+        return CurrencyFlags.getFlag(code);
     }
 
     private InlineKeyboardButton btn(String text, String callbackData) {

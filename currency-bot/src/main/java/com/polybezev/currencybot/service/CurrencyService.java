@@ -1,6 +1,7 @@
 package com.polybezev.currencybot.service;
 
 import com.polybezev.currencybot.model.CurrencyModel;
+import com.polybezev.currencybot.util.CurrencyFlags;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -108,20 +109,7 @@ public class CurrencyService {
     }
 
     private static String getCurrencyEmoji(String currencyCode) {
-        return switch (currencyCode) {
-            case "USD" -> "🇺🇸";
-            case "EUR" -> "🇪🇺";
-            case "GBP" -> "🇬🇧";
-            case "JPY" -> "🇯🇵";
-            case "CNY" -> "🇨🇳";
-            case "CHF" -> "🇨🇭";
-            case "CAD" -> "🇨🇦";
-            case "AUD" -> "🇦🇺";
-            case "NZD" -> "🇳🇿";
-            case "RUB" -> "🇷🇺";
-            case "BYN" -> "\uD83C\uDDE7\uD83C\uDDFE";
-            default -> "•";
-        };
+        return CurrencyFlags.getFlag(currencyCode);
     }
 
     private double toRub(double amount, String currency) throws IOException {
