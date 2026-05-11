@@ -122,6 +122,13 @@ public final class BotMessages {
 
     // ==================== УТРЕННЯЯ СВОДКА (TIER 1+) ====================
 
+    // {marketData} — рыночный снимок, {news} — заголовки новостей
+    public static final String DIGEST_FALLBACK =
+            "📊 Утренняя сводка\n\n" +
+            "🏦 Рынок:\n{marketData}\n\n" +
+            "📰 Новости:\n{news}\n\n" +
+            "⚠️ AI-анализ временно недоступен.";
+
     // Переменные: {date}, {usdRate}, {usdChange}, {eurRate}, {eurChange},
     //             {cnyRate}, {cnyChange}, {btcRub}, {btcUsd}, {btcChange}
     public static final String MORNING_DIGEST =

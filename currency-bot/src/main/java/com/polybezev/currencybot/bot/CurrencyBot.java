@@ -6,11 +6,14 @@ import com.polybezev.currencybot.handler.PaymentHandler;
 import com.polybezev.currencybot.model.ConversationState;
 import com.polybezev.currencybot.model.Tier;
 import com.polybezev.currencybot.model.UserConversationData;
+import com.polybezev.currencybot.scheduler.MorningDigestScheduler;
 import com.polybezev.currencybot.service.SubscriptionService;
 import com.polybezev.currencybot.service.UserStateService;
 import com.polybezev.currencybot.util.UserInfoExtractor;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
@@ -20,10 +23,13 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Slf4j
 public class CurrencyBot extends TelegramLongPollingBot {
 
+    @Lazy
+    @Autowired
+    private MorningDigestScheduler morningDigestScheduler;
     private final BotConfig botConfig;
     private final CommandHandler commandHandler;
     private final UserStateService userStateService;
@@ -66,6 +72,46 @@ public class CurrencyBot extends TelegramLongPollingBot {
             send(paymentHandler.handleSuccessfulPayment(chatId, update.getMessage().getSuccessfulPayment()));
             return;
         }
+
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            String cmd = update.getMessage().getText();
+            long id = update.getMessage().getChatId();
+
+            if (cmd.equals("/digest") && id == botConfig.getAdminChatId()) {
+                morningDigestScheduler.sendMorningDigest();
+                SendMessage confirm = new SendMessage();
+                confirm.setChatId(String.valueOf(id));
+                confirm.setText("Дайджест запущен");
+                send(confirm);
+                return;
+            }
+
+            if (cmd.startsWith("/grant") && id == botConfig.getAdminChatId()) {
+                String[] parts = cmd.split(" ");
+                if (parts.length == 2) {
+                    try {
+                        long targetId = Long.parseLong(parts[1]);
+                        subscriptionService.activateSubscription(targetId, Tier.TIER_1, 0);
+                        SendMessage confirm = new SendMessage();
+                        confirm.setChatId(String.valueOf(id));
+                        confirm.setText("✅ TIER_1 выдан пользователю " + targetId);
+                        send(confirm);
+                    } catch (NumberFormatException e) {
+                        SendMessage err = new SendMessage();
+                        err.setChatId(String.valueOf(id));
+                        err.setText("Формат: /grant <chatId>");
+                        send(err);
+                    }
+                } else {
+                    SendMessage err = new SendMessage();
+                    err.setChatId(String.valueOf(id));
+                    err.setText("Формат: /grant <chatId>");
+                    send(err);
+                }
+                return;
+            }
+        }
+
         if (!update.hasMessage() || !update.getMessage().hasText()) return;
 
         String text = update.getMessage().getText();
