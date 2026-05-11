@@ -1,6 +1,8 @@
 package com.polybezev.currencybot.formatter;
 
 import com.polybezev.currencybot.model.CryptoPriceModel;
+import com.polybezev.currencybot.model.CurrencyListData;
+import com.polybezev.currencybot.model.CurrencyListEntry;
 import com.polybezev.currencybot.model.CurrencyModel;
 import com.polybezev.currencybot.model.Tier;
 import com.polybezev.currencybot.util.CurrencyFlags;
@@ -32,20 +34,12 @@ public class MessageFormatter {
         return markup(baseCurrencyRows());
     }
 
-    private List<List<InlineKeyboardButton>> baseCurrencyRows() {
+    public InlineKeyboardMarkup buildTierKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-        rows.add(row(btn("🇺🇸 USD", "USD"), btn("🇪🇺 EUR", "EUR"), btn("🇨🇳 CNY", "CNY")));
-        rows.add(row(btn("🇬🇧 GBP", "GBP"), btn("🇯🇵 JPY", "JPY"), btn("🇨🇭 CHF", "CHF")));
-        rows.add(row(btn("🇹🇷 TRY", "TRY"), btn("🇦🇪 AED", "AED"), btn("🇰🇿 KZT", "KZT")));
-        rows.add(row(btn("🇧🇾 BYN", "BYN"), btn("🇨🇦 CAD", "CAD"), btn("🇭🇰 HKD", "HKD")));
-        rows.add(row(btn("₿ BTC", "BTC")));
-        return rows;
-    }
-
-    private InlineKeyboardMarkup markup(List<List<InlineKeyboardButton>> rows) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        markup.setKeyboard(rows);
-        return markup;
+        rows.add(row(btn("⚡ TIER 1 — 150 Stars", "BUY_TIER_1")));
+        rows.add(row(btn("📈 TIER 2 — 500 Stars", "BUY_TIER_2")));
+        rows.add(row(btn("🤖 TIER 3 — 1500 Stars", "BUY_TIER_3")));
+        return markup(rows);
     }
 
     public ReplyKeyboardMarkup buildMainKeyboard() {
@@ -60,36 +54,7 @@ public class MessageFormatter {
         return markup;
     }
 
-    public InlineKeyboardMarkup buildTierKeyboard() {
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-        rows.add(row(btn("⚡ TIER 1 — 150 Stars", "BUY_TIER_1")));
-        rows.add(row(btn("📈 TIER 2 — 500 Stars", "BUY_TIER_2")));
-        rows.add(row(btn("🤖 TIER 3 — 1500 Stars", "BUY_TIER_3")));
-        return markup(rows);
-
-    }
-
     // ==================== TEXTS ====================
-
-    public String buildCryptoCard(CryptoPriceModel model) {
-        String arrow = model.getChange24h() >= 0 ? "▲" : "▼";
-
-        return String.format(
-                """
-                        ₿ %s
-
-                        1 %s = %.0f ₽
-                        1 %s = %.0f $
-
-                        %s %.2f%% за 24ч
-
-                        📅 CoinGecko · %s""",
-                model.getSymbol(),
-                model.getSymbol(), model.getPriceRub(),
-                model.getSymbol(), model.getPriceUsd(),
-                arrow, model.getChange24h(), new SimpleDateFormat("dd.MM.yyyy").format(new Date())
-        );
-    }
 
     public String buildStartText(String name) {
         return BotMessages.START_TEXT.replace("{name}", name);
@@ -99,17 +64,46 @@ public class MessageFormatter {
         return BotMessages.HELP_TEXT;
     }
 
-    public String buildConvertResult(double amount, String from, double result, String to) {
-        String source = (from.equals("BTC") || to.equals("BTC")) ? "CoinGecko" : "ЦБ РФ";
-        return "💱 " + formatAmount(amount, from) + " " + from + " = " + formatAmount(result, to) + " " + to + "\n\n" +
-                "Курс: " + source;
+    public String buildUnknownInputText() {
+        return BotMessages.UNKNOWN_INPUT;
+    }
+
+    public String buildCurrencyNotFoundText(String code) {
+        return BotMessages.CURRENCY_NOT_FOUND.replace("{code}", code);
+    }
+
+    public String buildTierCard(Tier current) {
+        return BotMessages.TIER_CARD.replace("{currentTierLabel}", current.label);
+    }
+
+    public String buildCryptoCard(CryptoPriceModel model) {
+        String arrow = model.getChange24h() >= 0 ? "▲" : "▼";
+        return String.format(
+                "₿ %s\n\n" +
+                "1 %s = %.0f ₽\n" +
+                "1 %s = %.0f $\n\n" +
+                "%s %.2f%% за 24ч\n\n" +
+                "📅 CoinGecko · %s",
+                model.getSymbol(),
+                model.getSymbol(), model.getPriceRub(),
+                model.getSymbol(), model.getPriceUsd(),
+                arrow, model.getChange24h(),
+                new SimpleDateFormat("dd.MM.yyyy").format(new Date())
+        );
     }
 
     public String buildRateCard(CurrencyModel c) {
-        String flag = getCountryFlag(c.getCharCode());
+        String flag = CurrencyFlags.getFlag(c.getCharCode());
         String nominalPrefix = c.getNominal() > 1
                 ? c.getNominal() + " " + c.getCharCode() + " = "
                 : "1 " + c.getCharCode() + " = ";
+
+        Double diff = c.getDiff();
+        Double percent = c.getPercentChange();
+
+        String changeSymbol   = diff == null ? "" : (diff >= 0 ? "📈" : "📉");
+        String formattedDiff  = diff == null ? "—" : String.format("%+.4f", diff);
+        String formattedPct   = percent == null ? "—" : String.format("%+.2f%%", percent);
 
         return String.format(
                 "%s %s · %s\n\n" +
@@ -118,32 +112,58 @@ public class MessageFormatter {
                 "📅 ЦБ РФ · %s",
                 flag, c.getCharCode(), c.getName(),
                 nominalPrefix, c.getValue(),
-                c.getChangeSymbol(), c.getFormattedDiff(), c.getFormattedPercentChange(),
+                changeSymbol, formattedDiff, formattedPct,
                 formatDate(c.getDate())
         );
     }
 
-    public String buildCurrencyNotFoundText(String code) {
-        return BotMessages.CURRENCY_NOT_FOUND.replace("{code}", code);
+    public String buildConvertResult(double amount, String from, double result, String to) {
+        String source = (from.equals("BTC") || to.equals("BTC")) ? "CoinGecko" : "ЦБ РФ";
+        return "💱 " + formatAmount(amount, from) + " " + from
+                + " = " + formatAmount(result, to) + " " + to
+                + "\n\nКурс: " + source;
     }
 
-    public String buildUnknownInputText() {
-        return BotMessages.UNKNOWN_INPUT;
-    }
-
-    public String buildTierCard(Tier current) {
-        return BotMessages.TIER_CARD.replace("{currentTierLabel}", current.label);
+    public String buildCurrencyList(CurrencyListData data) {
+        StringBuilder sb = new StringBuilder("Доступные валюты ЦБ РФ:\n\n");
+        for (CurrencyListEntry entry : data.currencies()) {
+            sb.append(String.format("%s %s — %s\n",
+                    CurrencyFlags.getFlag(entry.code()), entry.code(), entry.name()));
+        }
+        sb.append("\nВсего: ").append(data.currencies().size()).append(" валют");
+        sb.append("\nДанные на: ").append(data.feedDate());
+        sb.append("\n\n💡 Используйте код валюты для получения курса");
+        sb.append("\nНапример: USD или /curse USD");
+        return sb.toString();
     }
 
     // ==================== PRIVATE HELPERS ====================
+
+    public String formatAmount(double value, String currency) {
+        return currency.equals("BTC")
+                ? String.format("%.10f", value)
+                : String.format("%.2f", value);
+    }
 
     private String formatDate(Date date) {
         if (date == null) return "—";
         return new SimpleDateFormat("dd.MM.yyyy").format(date);
     }
 
-    private String getCountryFlag(String code) {
-        return CurrencyFlags.getFlag(code);
+    private InlineKeyboardMarkup markup(List<List<InlineKeyboardButton>> rows) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+        return markup;
+    }
+
+    private List<List<InlineKeyboardButton>> baseCurrencyRows() {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(row(btn("🇺🇸 USD", "USD"), btn("🇪🇺 EUR", "EUR"), btn("🇨🇳 CNY", "CNY")));
+        rows.add(row(btn("🇬🇧 GBP", "GBP"), btn("🇯🇵 JPY", "JPY"), btn("🇨🇭 CHF", "CHF")));
+        rows.add(row(btn("🇹🇷 TRY", "TRY"), btn("🇦🇪 AED", "AED"), btn("🇰🇿 KZT", "KZT")));
+        rows.add(row(btn("🇧🇾 BYN", "BYN"), btn("🇨🇦 CAD", "CAD"), btn("🇭🇰 HKD", "HKD")));
+        rows.add(row(btn("₿ BTC", "BTC")));
+        return rows;
     }
 
     private InlineKeyboardButton btn(String text, String callbackData) {
@@ -155,11 +175,5 @@ public class MessageFormatter {
 
     private List<InlineKeyboardButton> row(InlineKeyboardButton... buttons) {
         return new ArrayList<>(Arrays.asList(buttons));
-    }
-
-    public String formatAmount(double value, String currency) {
-        return currency.equals("BTC")
-                ? String.format("%.10f", value)
-                : String.format("%.2f", value);
     }
 }

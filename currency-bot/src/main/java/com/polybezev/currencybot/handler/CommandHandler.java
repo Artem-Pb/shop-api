@@ -74,8 +74,7 @@ public class CommandHandler {
 
     private SendMessage handleList(long chatId) {
         try {
-            String list = currencyService.getFormattedCurrencyList();
-            return msg(chatId, list, formatter.buildRatesKeyboard());
+            return msg(chatId, formatter.buildCurrencyList(currencyService.getCurrencyList()), formatter.buildRatesKeyboard());
         } catch (IOException e) {
             log.error("API unavailable for user {}: {}", chatId, e.getMessage(), e);
             return msg(chatId, BotMessages.LIST_ERROR);

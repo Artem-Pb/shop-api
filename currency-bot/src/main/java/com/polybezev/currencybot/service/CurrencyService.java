@@ -1,7 +1,8 @@
 package com.polybezev.currencybot.service;
 
+import com.polybezev.currencybot.model.CurrencyListData;
+import com.polybezev.currencybot.model.CurrencyListEntry;
 import com.polybezev.currencybot.model.CurrencyModel;
-import com.polybezev.currencybot.util.CurrencyFlags;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -16,7 +17,10 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -39,7 +43,6 @@ public class CurrencyService {
         ).getAsJsonObject();
 
         String dateStr = root.get("Date").getAsString();
-
         JsonObject allValutes = root.getAsJsonObject("Valute");
 
         if (!allValutes.has(currencyCode)) {
@@ -47,12 +50,10 @@ public class CurrencyService {
         }
 
         JsonObject currencyJson = allValutes.getAsJsonObject(currencyCode);
-
         CurrencyModel model = gson.fromJson(currencyJson, CurrencyModel.class);
 
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
-            Date date = sdf.parse(dateStr);
+            Date date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").parse(dateStr);
             model.setDate(date);
         } catch (ParseException e) {
             log.warn("Failed to parse date from CBR response: {}", dateStr);
@@ -61,75 +62,43 @@ public class CurrencyService {
         return model;
     }
 
-    public double convertCurrency(double amount, String from, String to) throws IOException {
-        double rub = toRub(amount, from);
-        return fromRub(rub, to);
-    }
-
     @Cacheable("currencyList")
-    public String getFormattedCurrencyList() throws IOException {
+    public CurrencyListData getCurrencyList() throws IOException {
         URL url = new URL("https://www.cbr-xml-daily.ru/daily_json.js");
 
         JsonObject root = JsonParser.parseReader(
                 new InputStreamReader(url.openStream())
         ).getAsJsonObject();
 
+        String feedDate = root.get("Date").getAsString();
         JsonObject valutes = root.getAsJsonObject("Valute");
 
-        StringBuilder result = new StringBuilder();
-        result.append("Доступные валюты ЦБ РФ:\n\n");
+        List<String> codes = new ArrayList<>(valutes.keySet());
+        Collections.sort(codes);
 
-        List<String> currencyCodes = new ArrayList<>(valutes.keySet());
-        Collections.sort(currencyCodes);
-
-        int count = 0;
-        for (String code : currencyCodes) {
-            JsonObject currency = valutes.getAsJsonObject(code);
-            String name = currency.get("Name").getAsString();
-//            double value = currency.get("Value").getAsDouble();
-//            int nominal = currency.get("Nominal").getAsInt();
-
-            String emoji = getCurrencyEmoji(code);
-            result.append(String.format("%s %s - %s\n", emoji, code, name));
-
-            count++;
-
-            if (count >= 60) {
-                result.append("\n... и еще ").append(currencyCodes.size() - 30).append(" валют");
-                break;
-            }
+        List<CurrencyListEntry> entries = new ArrayList<>();
+        for (String code : codes) {
+            String name = valutes.getAsJsonObject(code).get("Name").getAsString();
+            entries.add(new CurrencyListEntry(code, name));
         }
 
-        result.append("\n\nВсего: ").append(valutes.size()).append(" валют");
-        result.append("\n Данные на: ").append(root.get("Date").getAsString());
-        result.append("\n\n💡 Используйте код валюты для получения курса");
-        result.append("\nНапример: USD или /curse USD");
-
-        return result.toString();
+        return new CurrencyListData(entries, feedDate);
     }
 
-    private static String getCurrencyEmoji(String currencyCode) {
-        return CurrencyFlags.getFlag(currencyCode);
+    public double convertCurrency(double amount, String from, String to) throws IOException {
+        return fromRub(toRub(amount, from), to);
     }
 
     private double toRub(double amount, String currency) throws IOException {
-        if (currency.equals("RUB")) {
-            return amount;
-        } else if (currency.equals("BTC")) {
-            return amount * cryptoService.getCryptoPrice("bitcoin").getPriceRub();
-        }
-
+        if (currency.equals("RUB")) return amount;
+        if (currency.equals("BTC")) return amount * cryptoService.getCryptoPrice("bitcoin").getPriceRub();
         CurrencyModel rate = self.getCurrency(currency);
         return amount * rate.getValue() / rate.getNominal();
     }
 
     private double fromRub(double amountRub, String currency) throws IOException {
-        if (currency.equals("RUB")) {
-            return amountRub;
-        } else if (currency.equals("BTC")) {
-            return amountRub / cryptoService.getCryptoPrice("bitcoin").getPriceRub();
-        }
-
+        if (currency.equals("RUB")) return amountRub;
+        if (currency.equals("BTC")) return amountRub / cryptoService.getCryptoPrice("bitcoin").getPriceRub();
         CurrencyModel rate = self.getCurrency(currency);
         return amountRub / (rate.getValue() / rate.getNominal());
     }

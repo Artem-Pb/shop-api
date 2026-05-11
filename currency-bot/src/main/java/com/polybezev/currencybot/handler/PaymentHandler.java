@@ -1,10 +1,12 @@
 package com.polybezev.currencybot.handler;
 
+import com.polybezev.currencybot.formatter.BotMessages;
 import com.polybezev.currencybot.model.Tier;
 import com.polybezev.currencybot.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.invoices.SendInvoice;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import org.telegram.telegrambots.meta.api.objects.payments.SuccessfulPayment;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiValidationException;
@@ -38,14 +40,16 @@ public class PaymentHandler {
         invoice.setProviderToken("");
         invoice.setCurrency("XTR");
         invoice.setPrices(List.of(new LabeledPrice(tier.label, tier.starsPrice)));
-
         return invoice;
     }
 
-    public void handleSuccessfulPayment(long chatId, SuccessfulPayment payment) {
-        String payload = payment.getInvoicePayload();
-        Tier tier = Tier.valueOf(payload);
-        int amount = payment.getTotalAmount();
-        subscriptionService.activateSubscription(chatId, tier, amount);
+    public SendMessage handleSuccessfulPayment(long chatId, SuccessfulPayment payment) {
+        Tier tier = Tier.valueOf(payment.getInvoicePayload());
+        subscriptionService.activateSubscription(chatId, tier, payment.getTotalAmount());
+        String text = BotMessages.STARS_SUCCESS.replace("{tierName}", tier.label);
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText(text);
+        return message;
     }
 }

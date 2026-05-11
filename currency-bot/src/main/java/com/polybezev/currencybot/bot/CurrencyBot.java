@@ -1,7 +1,6 @@
 package com.polybezev.currencybot.bot;
 
 import com.polybezev.currencybot.config.BotConfig;
-import com.polybezev.currencybot.formatter.BotMessages;
 import com.polybezev.currencybot.handler.CommandHandler;
 import com.polybezev.currencybot.handler.PaymentHandler;
 import com.polybezev.currencybot.model.ConversationState;
@@ -64,9 +63,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
 
         if (update.getMessage().hasSuccessfulPayment()) {
             long chatId = update.getMessage().getChatId();
-            paymentHandler.handleSuccessfulPayment(chatId, update.getMessage().getSuccessfulPayment());
-            Tier tier = Tier.valueOf(update.getMessage().getSuccessfulPayment().getInvoicePayload());
-            send(msg(chatId, BotMessages.STARS_SUCCESS.replace("{tierName}", tier.label)));
+            send(paymentHandler.handleSuccessfulPayment(chatId, update.getMessage().getSuccessfulPayment()));
             return;
         }
         if (!update.hasMessage() || !update.getMessage().hasText()) return;
@@ -128,12 +125,5 @@ public class CurrencyBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             log.error("Ошибка отправки сообщения пользователю {}: {}", message.getChatId(), e.getMessage(), e);
         }
-    }
-
-    private SendMessage msg(long chatId, String text) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(String.valueOf(chatId));
-        sendMessage.setText(text);
-        return sendMessage;
     }
 }
