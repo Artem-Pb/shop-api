@@ -5,6 +5,7 @@ import com.polybezev.currencybot.model.CurrencyListData;
 import com.polybezev.currencybot.model.CurrencyListEntry;
 import com.polybezev.currencybot.model.CurrencyModel;
 import com.polybezev.currencybot.model.Tier;
+import com.polybezev.currencybot.service.TaSignalService;
 import com.polybezev.currencybot.util.CurrencyFlags;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -49,6 +50,7 @@ public class MessageFormatter {
         row1.add(new KeyboardButton("₿ BTC"));
 
         KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("📈 Сигналы"));
         row2.add(new KeyboardButton("💎 Подписка"));
         row2.add(new KeyboardButton("❓ Помощь"));
 
@@ -139,6 +141,16 @@ public class MessageFormatter {
         sb.append("\n\n💡 Используйте код валюты для получения курса");
         sb.append("\nНапример: USD или /curse USD");
         return sb.toString();
+    }
+
+    public String buildSignalCard(TaSignalService.SignalResult r) {
+        return BotMessages.TA_SIGNAL
+                .replace("{asset}", r.coin())
+                .replace("{signal}", r.signal())
+                .replace("{rsi}", String.format("%.1f", r.rsi()))
+                .replace("{macd}", String.format("%.6f", r.macd()))
+                .replace("{macdSignal}", String.format("%.6f", r.macdSignal()))
+                .replace("{date}", new SimpleDateFormat("dd.MM.yyyy").format(new Date()));
     }
 
     // ==================== PRIVATE HELPERS ====================

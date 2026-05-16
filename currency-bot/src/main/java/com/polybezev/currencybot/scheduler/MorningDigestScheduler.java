@@ -1,7 +1,7 @@
 package com.polybezev.currencybot.scheduler;
 
 import com.polybezev.currencybot.bot.CurrencyBot;
-import com.polybezev.currencybot.model.UserSubscription;
+import com.polybezev.currencybot.entity.UserSubscription;
 import com.polybezev.currencybot.repository.UserSubscriptionRepository;
 import com.polybezev.currencybot.service.AiAnalysisService;
 import com.polybezev.currencybot.service.MarketDataService;

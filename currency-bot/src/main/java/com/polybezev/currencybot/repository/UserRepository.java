@@ -1,6 +1,6 @@
 package com.polybezev.currencybot.repository;
 
-import com.polybezev.currencybot.model.User;
+import com.polybezev.currencybot.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

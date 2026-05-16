@@ -1,5 +1,7 @@
-package com.polybezev.currencybot.model;
+package com.polybezev.currencybot.entity;
 
+import com.polybezev.currencybot.model.PaymentProvider;
+import com.polybezev.currencybot.model.Tier;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;

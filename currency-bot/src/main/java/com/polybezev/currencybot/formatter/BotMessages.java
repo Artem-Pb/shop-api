@@ -153,13 +153,17 @@ public final class BotMessages {
 
     // ==================== TA-СИГНАЛ (TIER 2+) ====================
 
-    // Переменные: {asset}, {signal}, {rsi}, {macd}, {date}
+    public static final String SIGNAL_TIER_REQUIRED =
+            "📊 Торговые сигналы доступны с TIER 2 (500 ⭐).\nИспользуй /tier для покупки.";
+
+    // Переменные: {asset}, {signal}, {rsi}, {macd}, {macdSignal}, {date}
     // Требует ParseMode.MARKDOWN при отправке
     public static final String TA_SIGNAL =
             "📈 Сигнал: *{asset}*\n\n" +
-            "Сигнал: *{signal}*\n" +
-            "RSI: `{rsi}`\n" +
-            "MACD: `{macd}`\n\n" +
+            "Итог: *{signal}*\n" +
+            "RSI(14): `{rsi}`\n" +
+            "MACD: `{macd}`\n" +
+            "Сигн. линия: `{macdSignal}`\n\n" +
             "_Дата: {date}_\n" +
-            "_⚠️ Не является финансовым советом. Торговые решения — на ваш страх и риск._";
+            "_⚠️ Не является финансовым советом._";
 }

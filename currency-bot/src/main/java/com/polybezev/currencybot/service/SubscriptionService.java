@@ -2,8 +2,8 @@ package com.polybezev.currencybot.service;
 
 import com.polybezev.currencybot.model.PaymentProvider;
 import com.polybezev.currencybot.model.Tier;
-import com.polybezev.currencybot.model.User;
-import com.polybezev.currencybot.model.UserSubscription;
+import com.polybezev.currencybot.entity.User;
+import com.polybezev.currencybot.entity.UserSubscription;
 import com.polybezev.currencybot.repository.UserRepository;
 import com.polybezev.currencybot.repository.UserSubscriptionRepository;
 import lombok.RequiredArgsConstructor;

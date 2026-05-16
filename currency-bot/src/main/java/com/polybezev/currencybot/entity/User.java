@@ -1,4 +1,4 @@
-package com.polybezev.currencybot.model;
+package com.polybezev.currencybot.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

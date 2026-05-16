@@ -6,6 +6,7 @@ import com.polybezev.currencybot.model.*;
 import com.polybezev.currencybot.service.CryptoService;
 import com.polybezev.currencybot.service.CurrencyService;
 import com.polybezev.currencybot.service.SubscriptionService;
+import com.polybezev.currencybot.service.TaSignalService;
 import com.polybezev.currencybot.service.UserStateService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class CommandHandler {
     private final CryptoService cryptoService;
     private final UserStateService userStateService;
     private final SubscriptionService subscriptionService;
+    private final TaSignalService taSignalService;
 
     // ==================== ENTRY POINTS ====================
 
@@ -41,6 +43,7 @@ public class CommandHandler {
             case "/convert" -> arg.isEmpty() ? startConvertFsm(chatId) : handleConvert(arg, chatId);
             case "/btc" -> handleBtc(chatId);
             case "/tier" -> handleTier(chatId);
+            case "/signal" -> handleSignal(chatId);
             default -> msg(chatId, BotMessages.UNKNOWN_COMMAND);
         };
     }
@@ -49,6 +52,7 @@ public class CommandHandler {
         if (text.equals("📊 Курсы")) return handleList(chatId);
         if (text.equals("Конвертер")) return startConvertFsm(chatId);
         if (text.equals("₿ BTC")) return handleBtc(chatId);
+        if (text.equals("📈 Сигналы")) return handleSignal(chatId);
         if (text.equals("💎 Подписка")) return handleTier(chatId);
         if (text.equals("❓ Помощь")) return msg(chatId, formatter.buildHelpText());
 
@@ -150,6 +154,23 @@ public class CommandHandler {
             }
             default           -> msg(chatId, BotMessages.CONVERT_FSM_ERROR);
         };
+    }
+
+    public SendMessage handleSignal(long chatId) {
+        if (!subscriptionService.hasAccess(chatId, Tier.TIER_2)) {
+            return msg(chatId, BotMessages.SIGNAL_TIER_REQUIRED);
+        }
+        try {
+            TaSignalService.SignalResult btc = taSignalService.analyze("bitcoin", "BTC");
+            TaSignalService.SignalResult eth = taSignalService.analyze("ethereum", "ETH");
+            String text = formatter.buildSignalCard(btc) + "\n" + formatter.buildSignalCard(eth);
+            SendMessage m = msg(chatId, text);
+            m.setParseMode("Markdown");
+            return m;
+        } catch (Exception e) {
+            log.error("TA signal error for user {}: {}", chatId, e.getMessage(), e);
+            return msg(chatId, "⚠️ Не удалось получить данные. Попробуй позже.");
+        }
     }
 
     private SendMessage handleTier(long chatId) {

@@ -32,7 +32,8 @@ public class BotInitializer {
                 new BotCommand("/convert", "Конвертер — пример: /convert 100 USD RUB"),
                 new BotCommand("/list",    "Список всех валют ЦБ РФ"),
                 new BotCommand("/btc",     "Курс биткоина в ₽ и $"),
-                new BotCommand("/tier",    "Подписки и возможности")
+                new BotCommand("/tier",    "Подписки и возможности"),
+                new BotCommand("/signal",  "Торговые сигналы RSI/MACD (TIER 2)")
         ), new BotCommandScopeDefault(), null));
 
         log.info("CurrencyBot registered successfully");
