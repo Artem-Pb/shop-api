@@ -19,7 +19,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -155,7 +157,7 @@ public class AdminCommandHandler {
      */
     public SendMessage handleAdminCallback(String data, long chatId, UserConversationData fsm) {
         if (data.startsWith("ADMIN_GRANT_TIER_")) {
-            String tierName = "TIER_" + data.substring("ADMIN_GRANT_TIER_".length());
+            String tierName = data.substring("ADMIN_GRANT_TIER_".length());
             String targetId = fsm.getAdminGrantTargetId();
             if (targetId == null) return msg(chatId, "Ошибка: потерян targetId. Начни заново.");
             try {
@@ -188,6 +190,10 @@ public class AdminCommandHandler {
             String prompt = BotMessages.ADMIN_GRANT_ASK_TIER.replace("{targetId}", String.valueOf(targetId));
             return msg(chatId, prompt, formatter.buildAdminGrantTierKeyboard());
         }
+        if (data.startsWith("ADMIN_PAGE_")) {
+            int page = Integer.parseInt(data.substring("ADMIN_PAGE_".length()));
+            return showUserList(chatId, page);
+        }
         return null;
     }
 
@@ -196,16 +202,42 @@ public class AdminCommandHandler {
     public SendMessage showUserList(long chatId, int page) {
         Page<User> userPage = userRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, PAGE_SIZE));
         List<String> lines = new ArrayList<>();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
         for (User u : userPage.getContent()) {
             Tier tier = subscriptionService.getActiveTier(u.getChatId());
-            String banned = u.isBanned() ? " 🚫" : "";
             String name = u.getFirstName() != null ? u.getFirstName() : "—";
             String username = u.getUsername() != null ? " (@" + u.getUsername() + ")" : "";
+            String banned = u.isBanned() ? " 🚫" : "";
             lines.add(String.format("%s%s%s\n  ID: %d · %s",
                     name, username, banned, u.getChatId(), tier.label));
+
+            String banLabel    = u.isBanned() ? "✅ Разбан"   : "🚫 Бан";
+            String banCallback = u.isBanned() ? "ADMIN_UNBAN_" + u.getChatId() : "ADMIN_BAN_" + u.getChatId();
+            rows.add(List.of(
+                btn(name + " · 🔑 Тир",  "ADMIN_START_GRANT_" + u.getChatId()),
+                btn(name + " · " + banLabel, banCallback)
+            ));
         }
-        return msg(chatId,
-                formatter.buildAdminUserList(lines, page + 1, userPage.getTotalPages()));
+
+        if (userPage.getTotalPages() > 1) {
+            List<InlineKeyboardButton> nav = new ArrayList<>();
+            if (page > 0)
+                nav.add(btn("◀ Назад", "ADMIN_PAGE_" + (page - 1)));
+            if (page < userPage.getTotalPages() - 1)
+                nav.add(btn("Вперёд ▶", "ADMIN_PAGE_" + (page + 1)));
+            if (!nav.isEmpty()) rows.add(nav);
+        }
+
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup(rows);
+        return msg(chatId, formatter.buildAdminUserList(lines, page + 1, userPage.getTotalPages()), keyboard);
+    }
+
+    private InlineKeyboardButton btn(String text, String callback) {
+        InlineKeyboardButton b = new InlineKeyboardButton();
+        b.setText(text);
+        b.setCallbackData(callback);
+        return b;
     }
 
     private SendMessage showBannedList(long chatId) {

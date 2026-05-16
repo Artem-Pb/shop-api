@@ -128,9 +128,10 @@ public class MessageFormatter {
 
     public InlineKeyboardMarkup buildAdminGrantTierKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-        rows.add(row(btn("⚡ TIER 1", "ADMIN_GRANT_TIER_1"),
-                     btn("📈 TIER 2", "ADMIN_GRANT_TIER_2"),
-                     btn("🤖 TIER 3", "ADMIN_GRANT_TIER_3")));
+        rows.add(row(btn("🆓 FREE",   "ADMIN_GRANT_TIER_FREE"),
+                     btn("⚡ TIER 1", "ADMIN_GRANT_TIER_TIER_1")));
+        rows.add(row(btn("📈 TIER 2", "ADMIN_GRANT_TIER_TIER_2"),
+                     btn("🤖 TIER 3", "ADMIN_GRANT_TIER_TIER_3")));
         return markup(rows);
     }
 

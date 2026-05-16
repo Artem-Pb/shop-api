@@ -193,28 +193,31 @@ public class CurrencyBot extends TelegramLongPollingBot {
      */
     private void sendWithFsmEdit(long chatId, UserConversationData data,
                                   ConversationState stateBefore, SendMessage response) {
-        boolean wasInFsm = stateBefore != ConversationState.IDLE;
+        boolean wasInFsm = isConverterFsm(stateBefore);
         Integer prevMsgId = data.getLastBotMessageId();
 
         if (wasInFsm && prevMsgId != null) {
             boolean edited = tryEdit(chatId, prevMsgId, response);
             if (!edited) {
-                // Редактирование не удалось (сообщение удалено/слишком старое) — шлём новое
                 Message sent = sendTracked(response);
                 if (sent != null) data.setLastBotMessageId(sent.getMessageId());
             }
-            // Если FSM завершился — сбрасываем lastBotMessageId
             UserConversationData fresh = userStateService.getOrCreate(chatId);
-            if (fresh.getState() == ConversationState.IDLE) {
+            if (!isConverterFsm(fresh.getState())) {
                 fresh.setLastBotMessageId(null);
             }
         } else {
             Message sent = sendTracked(response);
-            // Запоминаем ID только если вошли в FSM этим ответом
-            if (sent != null && data.getState() != ConversationState.IDLE) {
+            if (sent != null && isConverterFsm(data.getState())) {
                 data.setLastBotMessageId(sent.getMessageId());
             }
         }
+    }
+
+    private boolean isConverterFsm(ConversationState state) {
+        return state == ConversationState.AWAIT_AMOUNT
+            || state == ConversationState.AWAIT_FROM
+            || state == ConversationState.AWAIT_TO;
     }
 
     private boolean tryEdit(long chatId, int messageId, SendMessage source) {
