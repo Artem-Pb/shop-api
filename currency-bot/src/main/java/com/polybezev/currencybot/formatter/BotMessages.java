@@ -10,115 +10,151 @@ public final class BotMessages {
             "👋 Привет, {name}!\n\n" +
             "Слежу за курсами валют и крипты — быстро и по делу.\n\n" +
             "Бесплатно:\n" +
-            "• /curse USD — курс по ЦБ РФ\n" +
-            "• /convert 100 USD RUB — конвертер\n" +
-            "• /btc — биткоин в ₽ и $\n" +
-            "• /list — все валюты\n\n" +
-            "Или просто напиши код: USD, EUR, CNY 👇\n\n" +
-            "AI-прогнозы и сигналы → /tier";
+            "• Курсы по ЦБ РФ\n" +
+            "• Конвертер валют\n" +
+            "• Курс биткоина в ₽ и $\n" +
+            "• Все валюты списком\n\n" +
+            "Просто выбери нужное в меню внизу 👇\n\n" +
+            "AI-прогнозы и сигналы — нажми 💎 Подписка";
+
+    // {name} — имя. Показывается только при первом входе
+    public static final String WELCOME_NEW =
+            "🎉 Добро пожаловать, {name}!\n\n" +
+            "Это валютный и крипто-бот с AI-аналитикой.\n\n" +
+            "С чего начать:\n" +
+            "• Нажми 📊 Курсы — узнай текущие курсы ЦБ РФ\n" +
+            "• Нажми ₿ BTC — курс биткоина прямо сейчас\n" +
+            "• Нажми 👤 ЛК — личный кабинет и подписки\n\n" +
+            "Все функции доступны через кнопки меню 👇";
 
     // ==================== НАВИГАЦИЯ ====================
 
     public static final String HELP_TEXT =
-            "📋 Команды:\n\n" +
-            "/curse [КОД] — курс валюты по ЦБ РФ\n" +
-            "  Пример: /curse USD\n\n" +
-            "/convert [сумма] [ИЗ] [В] — конвертер\n" +
-            "  Пример: /convert 100 USD RUB\n\n" +
-            "/list — все валюты ЦБ РФ\n\n" +
-            "/btc — курс биткоина в ₽ и $\n\n" +
-            "/tier — подписки и возможности\n\n" +
-            "Быстрый способ: напиши код валюты — USD, EUR, CNY, GBP — без команды.\n\n" +
-            "Кнопки меню внизу — самые частые действия в один тап 👇";
+            "📋 Как пользоваться ботом:\n\n" +
+            "📊 Курсы — список всех валют ЦБ РФ + быстрый выбор\n" +
+            "Конвертер — перевод любой суммы X → Y\n" +
+            "₿ BTC — курс биткоина в ₽ и $\n" +
+            "📈 Сигналы — RSI/MACD по крипте (TIER 2)\n" +
+            "💎 Подписка — тиры и возможности\n" +
+            "👤 ЛК — личный кабинет\n\n" +
+            "Просто набери код валюты: USD, EUR, CNY, GBP — без команд.\n\n" +
+            "Поддержка: напиши в ЛК → Помощь 👇";
 
     public static final String CURSE_KEYBOARD_PROMPT = "Выберите валюту:";
 
     // ==================== ОШИБКИ И ПОДСКАЗКИ ====================
 
     public static final String UNKNOWN_INPUT =
-            "🤔 Не понял. Напиши код валюты: USD, EUR, CNY — или выбери команду в меню 👇";
+            "🤔 Не понял. Напиши код валюты: USD, EUR, CNY — или выбери действие в меню 👇";
 
     public static final String UNKNOWN_COMMAND =
-            "Такой команды нет. Список всех команд: /help";
+            "Такой команды нет. Используй кнопки меню или нажми ❓ Помощь";
 
     // {code} — код, введённый пользователем
     public static final String CURRENCY_NOT_FOUND =
             "🔍 Валюта {code} не найдена.\n\n" +
             "Коды пишутся латиницей: USD, EUR, CNY.\n" +
-            "Полный список: /list";
+            "Полный список — нажми 📊 Курсы";
 
     // ==================== КОНВЕРТЕР ====================
 
     public static final String CONVERT_FORMAT_ERROR =
-            "Формат: /convert 100 USD RUB";
+            "Формат: сумма, затем FROM и TO.\nПример: 100 USD RUB";
 
     public static final String CONVERT_AMOUNT_ERROR =
-            "Сумма должна быть числом. Пример: /convert 100 USD RUB";
+            "Сумма должна быть числом. Пример: 100 USD RUB";
 
     public static final String CONVERT_AWAIT_AMOUNT =
-            "Введите сумму для конвертации:\nНапример: 100, 1500, 0.5";
+            "💱 Конвертер\n\nВведите сумму:\nНапример: 100, 1500, 0.5";
 
     public static final String CONVERT_AMOUNT_INVALID =
-            "Нужно число — например, 100 или 1500.5\nПопробуйте ещё раз:";
+            "💱 Конвертер\n\nНужно число — например, 100 или 1500.5\nПопробуйте ещё раз:";
 
     public static final String CONVERT_AWAIT_FROM =
-            "Из какой валюты конвертируем?";
+            "💱 Конвертер\n\nИз какой валюты конвертируем?\nВыберите или введите код:";
 
     public static final String CONVERT_AWAIT_TO =
-            "В какую валюту переводим?";
+            "💱 Конвертер\n\nВ какую валюту переводим?\nВыберите или введите код:";
 
     public static final String CONVERT_ERROR =
             "⚠️ Не удалось получить курс — попробуйте чуть позже.\n" +
-            "Или воспользуйтесь командой напрямую: /convert 100 USD RUB";
+            "Или запустите конвертер заново через меню.";
 
     public static final String CONVERT_FSM_ERROR =
-            "Что-то пошло не так. Начните заново — /convert";
+            "Что-то пошло не так. Начните заново — нажмите Конвертер";
 
     // ==================== ОШИБКИ API ====================
 
     public static final String BTC_ERROR =
             "⚠️ Не удалось загрузить курс биткоина — CoinGecko сейчас недоступен.\n" +
-            "Попробуйте через пару минут: /btc";
+            "Попробуйте через пару минут.";
 
     public static final String LIST_ERROR =
             "⚠️ Не удалось загрузить список валют — ЦБ РФ сейчас не отвечает.\n" +
-            "Попробуйте через минуту: /list";
+            "Попробуйте через минуту.";
 
     // ==================== ПОДПИСКА ====================
 
     // {currentTierLabel} — название текущего тира пользователя
     public static final String TIER_CARD =
             "⭐ Ваша подписка: {currentTierLabel}\n\n" +
-            "🆓 FREE\n" +
+            "🆓 FREE — бесплатно\n" +
             "• Курсы валют по ЦБ РФ\n" +
             "• Конвертер валют\n" +
             "• Курс биткоина в ₽ и $\n\n" +
             "⚡ TIER 1 — AI-прогнозы\n" +
-            "• AI-прогноз по валютной паре\n" +
-            "• Утренняя сводка курсов\n" +
-            "💳 Telegram Stars\n\n" +
+            "• Новости по запросу (топ крипто)\n" +
+            "• Утренняя AI-сводка рынка (8:00 МСК)\n" +
+            "• Включает всё из FREE\n\n" +
             "📈 TIER 2 — Торговые сигналы\n" +
-            "• Технический анализ: RSI, MACD\n" +
-            "• Сигналы buy/sell по активам\n" +
-            "💳 YooKassa / Stripe\n\n" +
+            "• TA-сигналы RSI/MACD + AI-объяснение\n" +
+            "• Включает всё из TIER 1\n\n" +
             "🤖 TIER 3 — Автоторговля\n" +
             "• Автоматические сделки на бирже\n" +
             "• Безопасное хранение API-ключей\n" +
-            "💳 По запросу";
+            "• Включает всё из TIER 2";
 
     // {requiredTier} — нужный тир (пример: TIER 1)
     public static final String ACCESS_DENIED =
-            "🔒 Это доступно в {requiredTier}. Подробнее: /tier";
+            "🔒 Это доступно в {requiredTier}.\nНажми 💎 Подписка → выбери тир.";
 
     // ==================== ОПЛАТА — TELEGRAM STARS ====================
 
     // {tierName} — название тира (пример: TIER 1 — AI-прогнозы)
     public static final String STARS_SUCCESS =
             "✅ Оплата прошла — добро пожаловать в {tierName}!\n\n" +
-            "Новые функции уже доступны. Посмотреть подписку: /tier";
+            "Новые функции уже доступны. Открой 👤 ЛК → посмотри что появилось.";
 
     public static final String STARS_ERROR =
-            "Оплата не прошла. Попробуйте ещё раз или вернитесь позже: /tier";
+            "Оплата не прошла. Попробуйте ещё раз через 💎 Подписка.";
+
+    // ==================== ЛИЧНЫЙ КАБИНЕТ ====================
+
+    public static final String LK_HEADER =
+            "👤 Личный кабинет\n\nВыбери нужный раздел 👇";
+
+    // {tier} — тир, {expires} — дата истечения или "—", {paid} — уплачено Stars
+    public static final String LK_BALANCE =
+            "💰 Баланс\n\n" +
+            "Активная подписка: {tier}\n" +
+            "Действует до: {expires}\n" +
+            "Уплачено: {paid} ⭐\n\n" +
+            "Для продления или смены тира нажми ⭐ Подписка";
+
+    public static final String LK_HELP =
+            "❓ Помощь\n\n" +
+            "По всем вопросам пишите: @your_support_username\n\n" +
+            "Или опишите проблему — и мы ответим в течение суток.";
+
+    // ==================== НОВОСТИ (TIER 1+) ====================
+
+    public static final String NEWS_HEADER = "📰 Топ новости по крипте:\n\n";
+
+    public static final String NEWS_TIER_REQUIRED =
+            "📰 Новости по запросу доступны с TIER 1.\nНажми 💎 Подписка";
+
+    public static final String NEWS_ERROR =
+            "⚠️ Не удалось загрузить новости — попробуй позже.";
 
     // ==================== УТРЕННЯЯ СВОДКА (TIER 1+) ====================
 
@@ -129,17 +165,10 @@ public final class BotMessages {
             "📰 Новости:\n{news}\n\n" +
             "⚠️ AI-анализ временно недоступен.";
 
-    // Переменные: {date}, {usdRate}, {usdChange}, {eurRate}, {eurChange},
-    //             {cnyRate}, {cnyChange}, {btcRub}, {btcUsd}, {btcChange}
-    public static final String MORNING_DIGEST =
-            "📊 Сводка на {date}\n\n" +
-            "🇺🇸 USD — {usdRate} ₽  {usdChange}\n" +
-            "🇪🇺 EUR — {eurRate} ₽  {eurChange}\n" +
-            "🇨🇳 CNY — {cnyRate} ₽  {cnyChange}\n\n" +
-            "₿ BTC — {btcRub} ₽  /  {btcUsd} $  {btcChange}\n\n" +
-            "_Курсы ЦБ РФ и CoinGecko_";
+    public static final String DIGEST_TIER_REQUIRED =
+            "📊 AI-сводка доступна с TIER 2.\nНажми 💎 Подписка";
 
-    // ==================== AI-ПРОГНОЗ (TIER 1+) ====================
+    // ==================== AI-ПРОГНОЗ ====================
 
     // Переменные: {pair}, {direction}, {confidence}, {reasoning}, {date}
     // Требует ParseMode.MARKDOWN при отправке
@@ -149,12 +178,12 @@ public final class BotMessages {
             "Уверенность: {confidence}\n\n" +
             "{reasoning}\n\n" +
             "_Дата: {date}_\n" +
-            "_⚠️ Не является финансовым советом. Используйте как один из источников анализа._";
+            "_⚠️ Не является финансовым советом._";
 
     // ==================== TA-СИГНАЛ (TIER 2+) ====================
 
     public static final String SIGNAL_TIER_REQUIRED =
-            "📊 Торговые сигналы доступны с TIER 2 (500 ⭐).\nИспользуй /tier для покупки.";
+            "📊 Торговые сигналы доступны с TIER 2.\nНажми 💎 Подписка";
 
     public static final String SIGNAL_PROMPT =
             "📈 Выбери монету для анализа:\n\nRSI(14) + MACD · данные CoinGecko · TIER 2";
@@ -162,7 +191,7 @@ public final class BotMessages {
     public static final String SIGNAL_UNKNOWN_COIN =
             "❓ Монета не поддерживается.\nДоступны: BTC, ETH, SOL, BNB, XRP";
 
-    // Переменные: {asset}, {signal}, {rsi}, {macd}, {macdSignal}, {date}
+    // Переменные: {asset}, {signal}, {rsi}, {macd}, {macdSignal}, {aiExplanation}, {date}
     // Требует ParseMode.MARKDOWN при отправке
     public static final String TA_SIGNAL =
             "📈 Сигнал: *{asset}*\n\n" +
@@ -170,6 +199,35 @@ public final class BotMessages {
             "RSI(14): `{rsi}`\n" +
             "MACD: `{macd}`\n" +
             "Сигн. линия: `{macdSignal}`\n\n" +
+            "{aiExplanation}\n\n" +
             "_Дата: {date}_\n" +
             "_⚠️ Не является финансовым советом._";
+
+    // ==================== АДМИН-ПАНЕЛЬ ====================
+
+    public static final String ADMIN_HEADER =
+            "🔧 Административная панель\n\nВыбери действие:";
+
+    public static final String ADMIN_GRANT_ASK_ID =
+            "🔑 Выдать доступ\n\nВведи Telegram chatId пользователя:";
+
+    public static final String ADMIN_GRANT_ASK_TIER =
+            "🔑 Выдать доступ\n\nПользователь: {targetId}\n\nВыбери тир:";
+
+    // {targetId}, {tier}
+    public static final String ADMIN_GRANT_SUCCESS =
+            "✅ {tier} выдан пользователю {targetId}";
+
+    public static final String ADMIN_GRANT_ID_ERROR =
+            "❌ chatId должен быть числом. Попробуй снова:";
+
+    public static final String ADMIN_BAN_SUCCESS =
+            "🚫 Пользователь {chatId} заблокирован";
+
+    public static final String ADMIN_UNBAN_SUCCESS =
+            "✅ Пользователь {chatId} разблокирован";
+
+    // {page}, {total}, {list}
+    public static final String ADMIN_USER_LIST =
+            "👥 Пользователи (стр. {page}/{total}):\n\n{list}\n\nНажми кнопки для управления";
 }

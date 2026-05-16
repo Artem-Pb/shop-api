@@ -18,7 +18,17 @@ public class NewsService {
     @Value("${newsapi.api-key}")
     private String apiKey;
 
+    /** Для рассылки дайджеста — результат кешируется вызывающей стороной. */
     public String getTopNews() throws IOException {
+        return fetchNews();
+    }
+
+    /** Для запроса из ЛК — всегда свежие данные, без кеша. */
+    public String getTopNewsFresh() throws IOException {
+        return fetchNews();
+    }
+
+    private String fetchNews() throws IOException {
         URL url = new URL(
                 "https://newsapi.org/v2/everything?q=bitcoin+crypto" +
                 "&sortBy=publishedAt&pageSize=5&language=en&apiKey=" + apiKey

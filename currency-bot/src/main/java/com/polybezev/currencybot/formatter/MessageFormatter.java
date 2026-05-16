@@ -23,7 +23,82 @@ import java.util.List;
 @Component
 public class MessageFormatter {
 
-    // ==================== KEYBOARDS ====================
+    // ==================== REPLY KEYBOARDS ====================
+
+    public ReplyKeyboardMarkup buildMainKeyboard(boolean isAdmin) {
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("📊 Курсы"));
+        row1.add(new KeyboardButton("Конвертер"));
+        row1.add(new KeyboardButton("₿ BTC"));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("📈 Сигналы"));
+        row2.add(new KeyboardButton("💎 Подписка"));
+        row2.add(new KeyboardButton("👤 ЛК"));
+
+        List<KeyboardRow> rows = new ArrayList<>(List.of(row1, row2));
+
+        if (isAdmin) {
+            KeyboardRow adminRow = new KeyboardRow();
+            adminRow.add(new KeyboardButton("🔧 Админ"));
+            rows.add(adminRow);
+        }
+
+        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+        markup.setKeyboard(rows);
+        markup.setResizeKeyboard(true);
+        return markup;
+    }
+
+    public ReplyKeyboardMarkup buildLkKeyboard(Tier tier) {
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("💰 Баланс"));
+        row1.add(new KeyboardButton("⭐ Подписка"));
+
+        List<KeyboardRow> rows = new ArrayList<>(List.of(row1));
+
+        if (tier.ordinal() >= Tier.TIER_1.ordinal()) {
+            KeyboardRow newsRow = new KeyboardRow();
+            newsRow.add(new KeyboardButton("📰 Новости"));
+            if (tier.ordinal() >= Tier.TIER_2.ordinal()) {
+                newsRow.add(new KeyboardButton("📊 AI-сводка"));
+            }
+            rows.add(newsRow);
+        }
+
+        if (tier.ordinal() >= Tier.TIER_3.ordinal()) {
+            KeyboardRow botRow = new KeyboardRow();
+            botRow.add(new KeyboardButton("🤖 Торговый бот"));
+            rows.add(botRow);
+        }
+
+        KeyboardRow last = new KeyboardRow();
+        last.add(new KeyboardButton("❓ Помощь"));
+        last.add(new KeyboardButton("◀️ Назад"));
+        rows.add(last);
+
+        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+        markup.setKeyboard(rows);
+        markup.setResizeKeyboard(true);
+        return markup;
+    }
+
+    public ReplyKeyboardMarkup buildAdminKeyboard() {
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("👥 Пользователи"));
+        row1.add(new KeyboardButton("🔑 Выдать доступ"));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("🚫 Баны"));
+        row2.add(new KeyboardButton("◀️ Назад"));
+
+        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
+        markup.setKeyboard(List.of(row1, row2));
+        markup.setResizeKeyboard(true);
+        return markup;
+    }
+
+    // ==================== INLINE KEYBOARDS ====================
 
     public InlineKeyboardMarkup buildConvertKeyboard() {
         List<List<InlineKeyboardButton>> rows = baseCurrencyRows();
@@ -45,33 +120,36 @@ public class MessageFormatter {
 
     public InlineKeyboardMarkup buildTierKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-        rows.add(row(btn("⚡ TIER 1 — 150 Stars", "BUY_TIER_1")));
-        rows.add(row(btn("📈 TIER 2 — 500 Stars", "BUY_TIER_2")));
+        rows.add(row(btn("⚡ TIER 1 — 200 Stars", "BUY_TIER_1")));
+        rows.add(row(btn("📈 TIER 2 — 600 Stars", "BUY_TIER_2")));
         rows.add(row(btn("🤖 TIER 3 — 1500 Stars", "BUY_TIER_3")));
         return markup(rows);
     }
 
-    public ReplyKeyboardMarkup buildMainKeyboard() {
-        KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton("📊 Курсы"));
-        row1.add(new KeyboardButton("Конвертер"));
-        row1.add(new KeyboardButton("₿ BTC"));
-
-        KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton("📈 Сигналы"));
-        row2.add(new KeyboardButton("💎 Подписка"));
-        row2.add(new KeyboardButton("❓ Помощь"));
-
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        markup.setKeyboard(List.of(row1, row2));
-        markup.setResizeKeyboard(true);
-        return markup;
+    public InlineKeyboardMarkup buildAdminGrantTierKeyboard() {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(row(btn("⚡ TIER 1", "ADMIN_GRANT_TIER_1"),
+                     btn("📈 TIER 2", "ADMIN_GRANT_TIER_2"),
+                     btn("🤖 TIER 3", "ADMIN_GRANT_TIER_3")));
+        return markup(rows);
     }
 
-    // ==================== TEXTS ====================
+    public InlineKeyboardMarkup buildAdminUserActionsKeyboard(long targetChatId, boolean isBanned) {
+        String banLabel = isBanned ? "✅ Разбанить" : "🚫 Забанить";
+        String banCallback = isBanned ? "ADMIN_UNBAN_" + targetChatId : "ADMIN_BAN_" + targetChatId;
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(row(btn("🔑 Выдать тир", "ADMIN_START_GRANT_" + targetChatId), btn(banLabel, banCallback)));
+        return markup(rows);
+    }
+
+    // ==================== TEXT BUILDERS ====================
 
     public String buildStartText(String name) {
-        return BotMessages.START_TEXT.replace("{name}", name);
+        return BotMessages.START_TEXT.replace("{name}", name != null ? name : "");
+    }
+
+    public String buildWelcomeNewText(String name) {
+        return BotMessages.WELCOME_NEW.replace("{name}", name != null ? name : "");
     }
 
     public String buildHelpText() {
@@ -88,6 +166,13 @@ public class MessageFormatter {
 
     public String buildTierCard(Tier current) {
         return BotMessages.TIER_CARD.replace("{currentTierLabel}", current.label);
+    }
+
+    public String buildLkBalance(Tier tier, String expires, int paidStars) {
+        return BotMessages.LK_BALANCE
+                .replace("{tier}", tier.label)
+                .replace("{expires}", expires)
+                .replace("{paid}", String.valueOf(paidStars));
     }
 
     public String buildCryptoCard(CryptoPriceModel model) {
@@ -115,9 +200,9 @@ public class MessageFormatter {
         Double diff = c.getDiff();
         Double percent = c.getPercentChange();
 
-        String changeSymbol   = diff == null ? "" : (diff >= 0 ? "📈" : "📉");
-        String formattedDiff  = diff == null ? "—" : String.format("%+.4f", diff);
-        String formattedPct   = percent == null ? "—" : String.format("%+.2f%%", percent);
+        String changeSymbol  = diff == null ? "" : (diff >= 0 ? "📈" : "📉");
+        String formattedDiff = diff == null ? "—" : String.format("%+.4f", diff);
+        String formattedPct  = percent == null ? "—" : String.format("%+.2f%%", percent);
 
         return String.format(
                 "%s %s · %s\n\n" +
@@ -146,19 +231,27 @@ public class MessageFormatter {
         }
         sb.append("\nВсего: ").append(data.currencies().size()).append(" валют");
         sb.append("\nДанные на: ").append(data.feedDate());
-        sb.append("\n\n💡 Используйте код валюты для получения курса");
-        sb.append("\nНапример: USD или /curse USD");
+        sb.append("\n\n💡 Выбери валюту кнопкой или введи её код: USD, EUR...");
         return sb.toString();
     }
 
-    public String buildSignalCard(TaSignalService.SignalResult r) {
+    public String buildSignalCard(TaSignalService.SignalResult r, String aiExplanation) {
         return BotMessages.TA_SIGNAL
                 .replace("{asset}", r.coin())
                 .replace("{signal}", r.signal())
                 .replace("{rsi}", String.format("%.1f", r.rsi()))
                 .replace("{macd}", String.format("%.6f", r.macd()))
                 .replace("{macdSignal}", String.format("%.6f", r.macdSignal()))
+                .replace("{aiExplanation}", aiExplanation != null ? aiExplanation : "")
                 .replace("{date}", new SimpleDateFormat("dd.MM.yyyy").format(new Date()));
+    }
+
+    public String buildAdminUserList(List<String> userLines, int page, int totalPages) {
+        String list = String.join("\n", userLines);
+        return BotMessages.ADMIN_USER_LIST
+                .replace("{page}", String.valueOf(page))
+                .replace("{total}", String.valueOf(totalPages))
+                .replace("{list}", list);
     }
 
     // ==================== PRIVATE HELPERS ====================

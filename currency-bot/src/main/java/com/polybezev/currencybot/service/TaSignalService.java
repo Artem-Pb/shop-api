@@ -49,7 +49,7 @@ public class TaSignalService {
 
     public SignalResult analyze(String coinId, String coinName) {
         String url = "https://api.coingecko.com/api/v3/coins/" + coinId +
-                "/ohlc?vs_currency=usd&days=14";
+                "/ohlc?vs_currency=usd&days=30";
         String json = restTemplate.getForObject(url, String.class);
 
         JsonArray ohlc = JsonParser.parseString(json).getAsJsonArray();

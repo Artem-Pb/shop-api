@@ -5,6 +5,7 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
 import com.polybezev.currencybot.formatter.BotMessages;
+import com.polybezev.currencybot.service.TaSignalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -91,5 +92,36 @@ public class AiAnalysisService {
         return BotMessages.DIGEST_FALLBACK
                 .replace("{marketData}", marketData)
                 .replace("{news}", news);
+    }
+
+    /**
+     * Генерирует краткое AI-объяснение TA-сигнала (2-3 предложения).
+     * При ошибке возвращает null — вызывающий код показывает только TA без объяснения.
+     */
+    public String generateSignalExplanation(TaSignalService.SignalResult r) {
+        try {
+            String prompt = String.format(
+                    "Ты трейдинговый аналитик. Объясни простым языком (2-3 предложения) что значат эти показатели:\n" +
+                    "Монета: %s\n" +
+                    "Итог: %s\n" +
+                    "RSI(14): %.1f\n" +
+                    "MACD: %.6f, сигнальная линия: %.6f\n\n" +
+                    "Без заголовков, без списков. Только связный текст. " +
+                    "Не давай конкретных советов купить/продать.",
+                    r.coin(), r.signal(), r.rsi(), r.macd(), r.macdSignal()
+            );
+
+            MessageCreateParams params = MessageCreateParams.builder()
+                    .model(Model.CLAUDE_3_7_SONNET_20250219)
+                    .maxTokens(200L)
+                    .addUserMessage(prompt)
+                    .build();
+
+            Message response = anthropicClient.messages().create(params);
+            return "_" + response.content().get(0).asText().text().trim() + "_";
+        } catch (Exception e) {
+            log.warn("Signal explanation AI unavailable: {}", e.getMessage());
+            return null;
+        }
     }
 }

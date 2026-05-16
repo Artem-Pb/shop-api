@@ -1,12 +1,14 @@
 package com.polybezev.currencybot.bot;
 
 import com.polybezev.currencybot.config.BotConfig;
+import com.polybezev.currencybot.formatter.MessageFormatter;
 import com.polybezev.currencybot.handler.AdminCommandHandler;
 import com.polybezev.currencybot.handler.CommandHandler;
 import com.polybezev.currencybot.handler.PaymentHandler;
 import com.polybezev.currencybot.model.ConversationState;
 import com.polybezev.currencybot.model.Tier;
 import com.polybezev.currencybot.model.UserConversationData;
+import com.polybezev.currencybot.model.UserMode;
 import com.polybezev.currencybot.service.SubscriptionService;
 import com.polybezev.currencybot.service.UserStateService;
 import com.polybezev.currencybot.util.UserInfoExtractor;
@@ -17,7 +19,10 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
@@ -31,16 +36,13 @@ public class CurrencyBot extends TelegramLongPollingBot {
     private final UserStateService userStateService;
     private final SubscriptionService subscriptionService;
     private final PaymentHandler paymentHandler;
+    private final MessageFormatter messageFormatter;
 
     @Override
-    public String getBotUsername() {
-        return botConfig.getBotName();
-    }
+    public String getBotUsername() { return botConfig.getBotName(); }
 
     @Override
-    public String getBotToken() {
-        return botConfig.getToken();
-    }
+    public String getBotToken() { return botConfig.getToken(); }
 
     // ==================== ROUTING ====================
 
@@ -60,7 +62,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
             return;
         }
 
-        if (update.getMessage().hasSuccessfulPayment()) {
+        if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
             long chatId = update.getMessage().getChatId();
             send(paymentHandler.handleSuccessfulPayment(chatId, update.getMessage().getSuccessfulPayment()));
             return;
@@ -68,70 +70,199 @@ public class CurrencyBot extends TelegramLongPollingBot {
 
         if (!update.hasMessage() || !update.getMessage().hasText()) return;
 
-        String text = update.getMessage().getText();
-        long chatId = update.getMessage().getChatId();
+        String text     = update.getMessage().getText();
+        long chatId     = update.getMessage().getChatId();
         String username = UserInfoExtractor.getUserName(update);
         String firstName = UserInfoExtractor.getFirstName(update);
-        subscriptionService.getOrCreateUser(chatId, username, firstName);
+
+        SubscriptionService.UserRegistration reg =
+                subscriptionService.getOrCreateUser(chatId, username, firstName);
+
+        // Забаненные — игнорируем
+        if (reg.user().isBanned()) return;
+
+        // Новый пользователь — приветствие
+        if (reg.isNew()) {
+            log.info("New user registered: {}", chatId);
+            send(buildWelcomeMessage(chatId, firstName, adminCommandHandler.isAdmin(chatId)));
+            return;
+        }
+
         log.info("User {} sent: {}", chatId, text);
 
-        if (adminCommandHandler.isAdmin(chatId) && adminCommandHandler.isAdminCommand(text)) {
+        boolean isAdmin = adminCommandHandler.isAdmin(chatId);
+
+        // Slash-команды администратора (legacy + приоритет)
+        if (isAdmin && adminCommandHandler.isAdminCommand(text)) {
             send(adminCommandHandler.handle(text, chatId));
             return;
         }
 
         UserConversationData data = userStateService.getOrCreate(chatId);
+        ConversationState stateBefore = data.getState();
+        UserMode modeBefore = data.getMode();
+
         SendMessage response;
 
-        if (data.getState() != ConversationState.IDLE) {
+        // Admin panel mode — FSM ввод
+        if (modeBefore == UserMode.ADMIN && stateBefore != ConversationState.IDLE) {
+            response = adminCommandHandler.handleAdminFsmInput(text, chatId, data);
+        }
+        // Admin panel mode — кнопки
+        else if (modeBefore == UserMode.ADMIN) {
+            response = adminCommandHandler.handleAdminText(text, chatId, data, isAdmin);
+        }
+        // Кнопка "🔧 Админ"
+        else if (isAdmin && text.equals("🔧 Админ")) {
+            response = adminCommandHandler.enterAdminPanel(chatId, data);
+        }
+        // Конвертер FSM
+        else if (stateBefore != ConversationState.IDLE
+                && stateBefore != ConversationState.ADMIN_AWAIT_GRANT_ID
+                && stateBefore != ConversationState.ADMIN_AWAIT_GRANT_TIER) {
             response = commandHandler.handleFsmInput(text, chatId, data);
-        } else if (text.startsWith("/")) {
-            response = commandHandler.handleCommand(text, chatId, firstName);
-        } else {
-            response = commandHandler.handleText(text, chatId);
+        }
+        // Slash-команды
+        else if (text.startsWith("/")) {
+            response = commandHandler.handleCommand(text, chatId, firstName, data, isAdmin);
+        }
+        // Текст / Reply-кнопки
+        else {
+            response = commandHandler.handleText(text, chatId, data, isAdmin);
         }
 
-        send(response);
+        // Отправка с поддержкой edit-in-place для FSM конвертера
+        sendWithFsmEdit(chatId, data, stateBefore, response);
     }
 
     private void handleCallback(Update update) {
         long chatId = update.getCallbackQuery().getMessage().getChatId();
         String data = update.getCallbackQuery().getData();
-        log.info("User {} pressed button: {}", chatId, data);
+        log.info("User {} callback: {}", chatId, data);
 
+        // Всегда убираем "часики" на кнопке
         try {
-            AnswerCallbackQuery answer = new AnswerCallbackQuery();
-            answer.setCallbackQueryId(update.getCallbackQuery().getId());
-            execute(answer);
+            AnswerCallbackQuery ack = new AnswerCallbackQuery();
+            ack.setCallbackQueryId(update.getCallbackQuery().getId());
+            execute(ack);
         } catch (TelegramApiException ignored) {}
 
         UserConversationData fsm = userStateService.getOrCreate(chatId);
-        if (fsm.getState() == ConversationState.AWAIT_FROM || fsm.getState() == ConversationState.AWAIT_TO) {
-            send(commandHandler.handleFsmInput(data, chatId, fsm));
-        } else if (data.startsWith("SIGNAL_")) {
-            String symbol = data.substring(7);
-            send(commandHandler.handleSignalForCoin(chatId, symbol));
+        boolean isAdmin = adminCommandHandler.isAdmin(chatId);
+
+        // Admin callbacks
+        if (data.startsWith("ADMIN_")) {
+            SendMessage resp = adminCommandHandler.handleAdminCallback(data, chatId, fsm);
+            if (resp != null) send(resp);
+            return;
+        }
+
+        SendMessage response;
+
+        if (fsm.getState() == ConversationState.AWAIT_FROM
+                || fsm.getState() == ConversationState.AWAIT_TO) {
+            // Выбор валюты через кнопку в FSM — редактируем сообщение
+            ConversationState stateBefore = fsm.getState();
+            response = commandHandler.handleFsmInput(data, chatId, fsm);
+            sendWithFsmEdit(chatId, fsm, stateBefore, response);
+            return;
+        }
+
+        if (data.startsWith("SIGNAL_")) {
+            response = commandHandler.handleSignalForCoin(chatId, data.substring(7));
         } else if (data.equals("BTC")) {
-            send(commandHandler.handleBtc(chatId));
+            response = commandHandler.handleBtc(chatId);
         } else if (data.startsWith("BUY_")) {
             Tier tier = Tier.valueOf(data.substring(4));
-            try {
-                execute(paymentHandler.sendInvoice(chatId, tier));
-            } catch (TelegramApiException e) {
-                log.error("Ошибка отправки инвойса {}: {}", chatId, e.getMessage(), e);
+            try { execute(paymentHandler.sendInvoice(chatId, tier)); }
+            catch (TelegramApiException e) {
+                log.error("Invoice error {}: {}", chatId, e.getMessage(), e);
+            }
+            return;
+        } else {
+            response = commandHandler.handleCurrencyRequest(data, chatId);
+        }
+
+        send(response);
+    }
+
+    // ==================== FSM EDIT-IN-PLACE ====================
+
+    /**
+     * Отправляет или редактирует сообщение в зависимости от контекста FSM.
+     * Если пользователь был в FSM (stateBefore != IDLE) и у него есть lastBotMessageId —
+     * редактируем то же сообщение. Иначе отправляем новое и запоминаем ID.
+     */
+    private void sendWithFsmEdit(long chatId, UserConversationData data,
+                                  ConversationState stateBefore, SendMessage response) {
+        boolean wasInFsm = stateBefore != ConversationState.IDLE;
+        Integer prevMsgId = data.getLastBotMessageId();
+
+        if (wasInFsm && prevMsgId != null) {
+            boolean edited = tryEdit(chatId, prevMsgId, response);
+            if (!edited) {
+                // Редактирование не удалось (сообщение удалено/слишком старое) — шлём новое
+                Message sent = sendTracked(response);
+                if (sent != null) data.setLastBotMessageId(sent.getMessageId());
+            }
+            // Если FSM завершился — сбрасываем lastBotMessageId
+            UserConversationData fresh = userStateService.getOrCreate(chatId);
+            if (fresh.getState() == ConversationState.IDLE) {
+                fresh.setLastBotMessageId(null);
             }
         } else {
-            send(commandHandler.handleCurrencyRequest(data, chatId));
+            Message sent = sendTracked(response);
+            // Запоминаем ID только если вошли в FSM этим ответом
+            if (sent != null && data.getState() != ConversationState.IDLE) {
+                data.setLastBotMessageId(sent.getMessageId());
+            }
+        }
+    }
+
+    private boolean tryEdit(long chatId, int messageId, SendMessage source) {
+        try {
+            EditMessageText edit = new EditMessageText();
+            edit.setChatId(String.valueOf(chatId));
+            edit.setMessageId(messageId);
+            edit.setText(source.getText());
+            if (source.getReplyMarkup() instanceof InlineKeyboardMarkup kb) {
+                edit.setReplyMarkup(kb);
+            }
+            execute(edit);
+            return true;
+        } catch (TelegramApiException e) {
+            log.warn("Edit failed for msg {} of {}: {}", messageId, chatId, e.getMessage());
+            return false;
         }
     }
 
     // ==================== MESSAGING ====================
 
     public void send(SendMessage message) {
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            log.error("Ошибка отправки сообщения пользователю {}: {}", message.getChatId(), e.getMessage(), e);
+        if (message == null) return;
+        try { execute(message); }
+        catch (TelegramApiException e) {
+            log.error("Send error for {}: {}", message.getChatId(), e.getMessage(), e);
         }
+    }
+
+    /** Отправляет сообщение и возвращает объект Message с id — для FSM edit-in-place. */
+    public Message sendTracked(SendMessage message) {
+        if (message == null) return null;
+        try { return execute(message); }
+        catch (TelegramApiException e) {
+            log.error("Send error for {}: {}", message.getChatId(), e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // ==================== HELPERS ====================
+
+    private SendMessage buildWelcomeMessage(long chatId, String firstName, boolean isAdmin) {
+        SendMessage msg = new SendMessage();
+        msg.setChatId(String.valueOf(chatId));
+        msg.setText(messageFormatter.buildWelcomeNewText(firstName));
+        msg.setReplyMarkup(messageFormatter.buildMainKeyboard(isAdmin));
+        return msg;
     }
 }
