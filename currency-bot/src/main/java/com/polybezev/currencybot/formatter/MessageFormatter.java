@@ -48,8 +48,12 @@ public class MessageFormatter {
         row1.add(new KeyboardButton("Конвертер"));
         row1.add(new KeyboardButton("₿ BTC"));
 
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("💎 Подписка"));
+        row2.add(new KeyboardButton("❓ Помощь"));
+
         ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-        markup.setKeyboard(List.of(row1));
+        markup.setKeyboard(List.of(row1, row2));
         markup.setResizeKeyboard(true);
         return markup;
     }

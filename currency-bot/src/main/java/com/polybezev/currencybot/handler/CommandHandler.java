@@ -49,6 +49,8 @@ public class CommandHandler {
         if (text.equals("📊 Курсы")) return handleList(chatId);
         if (text.equals("Конвертер")) return startConvertFsm(chatId);
         if (text.equals("₿ BTC")) return handleBtc(chatId);
+        if (text.equals("💎 Подписка")) return handleTier(chatId);
+        if (text.equals("❓ Помощь")) return msg(chatId, formatter.buildHelpText());
 
         String upper = text.toUpperCase().trim();
 
