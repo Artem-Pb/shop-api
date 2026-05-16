@@ -35,6 +35,14 @@ public class MessageFormatter {
         return markup(baseCurrencyRows());
     }
 
+    public InlineKeyboardMarkup buildSignalKeyboard() {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(row(btn("₿ BTC", "SIGNAL_BTC"), btn("Ξ ETH", "SIGNAL_ETH")));
+        rows.add(row(btn("◎ SOL", "SIGNAL_SOL"), btn("⬡ BNB", "SIGNAL_BNB")));
+        rows.add(row(btn("✕ XRP", "SIGNAL_XRP")));
+        return markup(rows);
+    }
+
     public InlineKeyboardMarkup buildTierKeyboard() {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(row(btn("⚡ TIER 1 — 150 Stars", "BUY_TIER_1")));

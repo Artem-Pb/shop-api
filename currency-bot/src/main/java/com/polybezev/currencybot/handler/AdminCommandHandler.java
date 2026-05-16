@@ -48,14 +48,17 @@ public class AdminCommandHandler {
 
     private SendMessage handleGrant(String text, long chatId) {
         String[] parts = text.split(" ");
-        if (parts.length != 2) return msg(chatId, "Формат: /grant <chatId>");
+        if (parts.length != 3) return msg(chatId, "Формат: /grant <chatId> <TIER_1|TIER_2|TIER_3>");
         try {
             long targetId = Long.parseLong(parts[1]);
-            subscriptionService.activateSubscription(targetId, Tier.TIER_1, 0);
-            log.info("Admin {} granted TIER_1 to {}", chatId, targetId);
-            return msg(chatId, "✅ TIER_1 выдан пользователю " + targetId);
+            Tier tier = Tier.valueOf(parts[2].toUpperCase());
+            subscriptionService.activateSubscription(targetId, tier, 0);
+            log.info("Admin {} granted {} to {}", chatId, tier, targetId);
+            return msg(chatId, "✅ " + tier.label + " выдан пользователю " + targetId);
         } catch (NumberFormatException e) {
-            return msg(chatId, "Формат: /grant <chatId>");
+            return msg(chatId, "Формат: /grant <chatId> <TIER_1|TIER_2|TIER_3>");
+        } catch (IllegalArgumentException e) {
+            return msg(chatId, "Неизвестный тир. Доступны: TIER_1, TIER_2, TIER_3");
         }
     }
 

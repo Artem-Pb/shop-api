@@ -43,7 +43,7 @@ public class CommandHandler {
             case "/convert" -> arg.isEmpty() ? startConvertFsm(chatId) : handleConvert(arg, chatId);
             case "/btc" -> handleBtc(chatId);
             case "/tier" -> handleTier(chatId);
-            case "/signal" -> handleSignal(chatId);
+            case "/signal" -> arg.isEmpty() ? handleSignal(chatId) : handleSignalForCoin(chatId, arg.toUpperCase());
             default -> msg(chatId, BotMessages.UNKNOWN_COMMAND);
         };
     }
@@ -160,13 +160,20 @@ public class CommandHandler {
         if (!subscriptionService.hasAccess(chatId, Tier.TIER_2)) {
             return msg(chatId, BotMessages.SIGNAL_TIER_REQUIRED);
         }
+        return msg(chatId, BotMessages.SIGNAL_PROMPT, formatter.buildSignalKeyboard());
+    }
+
+    public SendMessage handleSignalForCoin(long chatId, String symbol) {
+        if (!subscriptionService.hasAccess(chatId, Tier.TIER_2)) {
+            return msg(chatId, BotMessages.SIGNAL_TIER_REQUIRED);
+        }
         try {
-            TaSignalService.SignalResult btc = taSignalService.analyze("bitcoin", "BTC");
-            TaSignalService.SignalResult eth = taSignalService.analyze("ethereum", "ETH");
-            String text = formatter.buildSignalCard(btc) + "\n" + formatter.buildSignalCard(eth);
-            SendMessage m = msg(chatId, text);
+            TaSignalService.SignalResult result = taSignalService.analyzeBySymbol(symbol);
+            SendMessage m = msg(chatId, formatter.buildSignalCard(result));
             m.setParseMode("Markdown");
             return m;
+        } catch (IllegalArgumentException e) {
+            return msg(chatId, BotMessages.SIGNAL_UNKNOWN_COIN);
         } catch (Exception e) {
             log.error("TA signal error for user {}: {}", chatId, e.getMessage(), e);
             return msg(chatId, "⚠️ Не удалось получить данные. Попробуй позже.");

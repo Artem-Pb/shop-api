@@ -17,6 +17,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -25,8 +27,25 @@ public class TaSignalService {
 
     private final RestTemplate restTemplate;
 
-    public record SignalResult(String coin, double rsi, double macd, double macdSignal,
-                               String signal) {}
+    private static final Map<String, String> COIN_IDS = Map.of(
+            "BTC", "bitcoin",
+            "ETH", "ethereum",
+            "SOL", "solana",
+            "BNB", "binancecoin",
+            "XRP", "ripple"
+    );
+
+    public record SignalResult(String coin, double rsi, double macd, double macdSignal, String signal) {}
+
+    public Set<String> supportedCoins() {
+        return COIN_IDS.keySet();
+    }
+
+    public SignalResult analyzeBySymbol(String symbol) {
+        String coinId = COIN_IDS.get(symbol.toUpperCase());
+        if (coinId == null) throw new IllegalArgumentException("Unknown coin: " + symbol);
+        return analyze(coinId, symbol.toUpperCase());
+    }
 
     public SignalResult analyze(String coinId, String coinName) {
         String url = "https://api.coingecko.com/api/v3/coins/" + coinId +

@@ -156,6 +156,12 @@ public final class BotMessages {
     public static final String SIGNAL_TIER_REQUIRED =
             "📊 Торговые сигналы доступны с TIER 2 (500 ⭐).\nИспользуй /tier для покупки.";
 
+    public static final String SIGNAL_PROMPT =
+            "📈 Выбери монету для анализа:\n\nRSI(14) + MACD · данные CoinGecko · TIER 2";
+
+    public static final String SIGNAL_UNKNOWN_COIN =
+            "❓ Монета не поддерживается.\nДоступны: BTC, ETH, SOL, BNB, XRP";
+
     // Переменные: {asset}, {signal}, {rsi}, {macd}, {macdSignal}, {date}
     // Требует ParseMode.MARKDOWN при отправке
     public static final String TA_SIGNAL =
