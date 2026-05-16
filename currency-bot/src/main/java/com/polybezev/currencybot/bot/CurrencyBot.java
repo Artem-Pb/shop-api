@@ -81,11 +81,9 @@ public class CurrencyBot extends TelegramLongPollingBot {
         // Забаненные — игнорируем
         if (reg.user().isBanned()) return;
 
-        // Новый пользователь — приветствие
+        // Новый пользователь — просто логируем; презентацию покажет /start ниже
         if (reg.isNew()) {
             log.info("New user registered: {}", chatId);
-            send(buildWelcomeMessage(chatId, firstName, adminCommandHandler.isAdmin(chatId)));
-            return;
         }
 
         log.info("User {} sent: {}", chatId, text);
