@@ -2,6 +2,7 @@ package com.polybezev.shop.service;
 
 import com.polybezev.shop.dto.request.LoginRequest;
 import com.polybezev.shop.dto.request.RegisterRequest;
+import com.polybezev.shop.dto.response.AuthResponse;
 import com.polybezev.shop.entity.Role;
 import com.polybezev.shop.entity.User;
 import com.polybezev.shop.exception.ConflictException;
@@ -23,7 +24,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    public String register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail()))
             throw new ConflictException("Email already exists");
 
@@ -33,10 +34,10 @@ public class AuthService {
         user.setRole(Role.USER);
 
         userRepository.save(user);
-        return jwtService.generateToken(user.getEmail());
+        return buildResponse(user);
     }
 
-    public String login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
@@ -44,6 +45,13 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        return jwtService.generateToken(user.getEmail());
+        return buildResponse(user);
+    }
+
+    private AuthResponse buildResponse(User user) {
+        AuthResponse response = new AuthResponse();
+        response.setToken(jwtService.generateToken(user.getEmail()));
+        response.setRole(user.getRole().name());
+        return response;
     }
 }

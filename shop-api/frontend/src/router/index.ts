@@ -4,6 +4,7 @@ import CatalogView from '@/views/CatalogView.vue'
 import ProductView from '@/views/ProductView.vue'
 import CartView    from '@/views/CartView.vue'
 import OrdersView  from '@/views/OrdersView.vue'
+import AdminView   from '@/views/AdminView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -14,6 +15,7 @@ const router = createRouter({
     { path: '/product/:id', name: 'product', component: ProductView },
     { path: '/cart',        name: 'cart',    component: CartView    },
     { path: '/orders',      name: 'orders',  component: OrdersView  },
+    { path: '/admin',       name: 'admin',   component: AdminView   },
   ],
 })
 

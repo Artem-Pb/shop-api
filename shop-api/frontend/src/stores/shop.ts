@@ -13,10 +13,12 @@ export interface CartItem {
 export const useShopStore = defineStore('shop', () => {
   const token     = ref<string>(localStorage.getItem('token') || '')
   const userEmail = ref<string>(localStorage.getItem('userEmail') || '')
+  const userRole  = ref<string>(localStorage.getItem('userRole') || 'USER')
   const cart      = ref<CartItem[]>([])
   const toast     = ref<string | null>(null)
 
   const isAuth     = computed(() => !!token.value)
+  const isAdmin    = computed(() => userRole.value === 'ADMIN')
   const cartCount  = computed(() => cart.value.reduce((s, i) => s + i.quantity, 0))
   const cartTotal  = computed(() => cart.value.reduce((s, i) => s + Number(i.price) * i.quantity, 0))
 
@@ -29,8 +31,10 @@ export const useShopStore = defineStore('shop', () => {
     const { data } = await api.post('/api/auth/login', { email, password })
     token.value = data.token
     userEmail.value = email
+    userRole.value = data.role || 'USER'
     localStorage.setItem('token', data.token)
     localStorage.setItem('userEmail', email)
+    localStorage.setItem('userRole', userRole.value)
     await fetchCart()
   }
 
@@ -38,17 +42,21 @@ export const useShopStore = defineStore('shop', () => {
     const { data } = await api.post('/api/auth/register', { email, password })
     token.value = data.token
     userEmail.value = email
+    userRole.value = data.role || 'USER'
     localStorage.setItem('token', data.token)
     localStorage.setItem('userEmail', email)
+    localStorage.setItem('userRole', userRole.value)
     cart.value = []
   }
 
   function logout() {
     token.value = ''
     userEmail.value = ''
+    userRole.value = 'USER'
     cart.value = []
     localStorage.removeItem('token')
     localStorage.removeItem('userEmail')
+    localStorage.removeItem('userRole')
   }
 
   async function fetchCart() {
@@ -93,8 +101,8 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   return {
-    token, userEmail, cart, toast,
-    isAuth, cartCount, cartTotal,
+    token, userEmail, userRole, cart, toast,
+    isAuth, isAdmin, cartCount, cartTotal,
     showToast, login, register, logout,
     fetchCart, addToCart, updateQty, removeFromCart, checkout,
   }

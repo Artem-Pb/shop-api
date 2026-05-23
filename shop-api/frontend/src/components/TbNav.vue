@@ -1,7 +1,10 @@
 <template>
   <nav :style="navStyle">
-    <RouterLink v-for="link in links" :key="link.to" :to="link.to" custom v-slot="{ isActive, navigate }">
-      <button @click="navigate" :style="itemStyle(isActive)">{{ link.label }}</button>
+    <RouterLink
+      v-for="link in links.filter(l => !l.adminOnly || store.isAdmin)"
+      :key="link.to" :to="link.to" custom v-slot="{ isActive, navigate }"
+    >
+      <button @click="navigate" :style="itemStyle(isActive, link.adminOnly)">{{ link.label }}</button>
     </RouterLink>
     <div style="flex:1" />
     <div v-if="store.isAuth" :style="userAreaStyle">
@@ -26,9 +29,10 @@ import { TB, TBF } from '@/tokens'
 const store = useShopStore()
 
 const links = [
-  { to: '/',        label: '[ HOME ]' },
-  { to: '/catalog', label: '[ CATALOG ]' },
-  { to: '/orders',  label: '[ ORDERS ]' },
+  { to: '/',        label: '[ HOME ]',    adminOnly: false },
+  { to: '/catalog', label: '[ CATALOG ]', adminOnly: false },
+  { to: '/orders',  label: '[ ORDERS ]',  adminOnly: false },
+  { to: '/admin',   label: '[ ADMIN ]',   adminOnly: true  },
 ]
 
 const navStyle = {
@@ -36,9 +40,9 @@ const navStyle = {
   display: 'flex', alignItems: 'stretch', gap: '0',
 }
 
-const itemStyle = (active: boolean) => ({
-  background: active ? TB.INK : 'transparent',
-  color:      active ? TB.ACCENT : TB.INK,
+const itemStyle = (active: boolean, adminOnly = false) => ({
+  background: active ? (adminOnly ? TB.ACCENT : TB.INK) : 'transparent',
+  color:      active ? (adminOnly ? TB.INK    : TB.ACCENT) : (adminOnly ? TB.RED : TB.INK),
   border: 'none', borderRight: `1px solid ${TB.INK}`,
   fontFamily: TBF.mono, fontSize: '12px', fontWeight: '700',
   letterSpacing: '0.04em', padding: '12px 18px', cursor: 'pointer',
