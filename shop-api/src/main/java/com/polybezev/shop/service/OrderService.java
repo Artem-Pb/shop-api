@@ -59,6 +59,11 @@ public class OrderService {
         return orderRepository.findByUserOrderByCreatedAtDesc(user);
     }
 
+    public List<Order> findAll() {
+        return orderRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+    }
+
     public Order updateStatus(Long orderId, OrderStatus newStatus) {
         Order order = getById(orderId);
         if (order.getOrderStatus().equals(OrderStatus.DELIVERED)
