@@ -160,8 +160,8 @@ const removeBtnStyle = {
 }
 const totalsRowStyle = {
   display: 'flex', justifyContent: 'space-between', gap: '32px',
-  borderTop: `2px solid ${TB.INK}`, padding: '20px',
-  background: TB.CARD, border: `2px solid ${TB.INK}`, borderTop: 'none',
+  border: `2px solid ${TB.INK}`, borderTop: 'none', padding: '20px',
+  background: TB.CARD,
 }
 const promoStyle = { display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: 'wrap' as const }
 const promoInputStyle = {

@@ -23,11 +23,11 @@
           <!-- Git log line -->
           <div :style="logLineStyle" @click="toggle(order.id)">
             <span :style="commitHashStyle">{{ hashFromId(order.id) }}</span>
-            <span :style="statusBadgeStyle(order.status)">{{ order.status }}</span>
+            <span :style="statusBadgeStyle(order.orderStatus)">{{ order.orderStatus }}</span>
             <span :style="{ fontFamily: TBF.display, fontSize: '13px', fontWeight: '600', flex: '1' }">
               Order #{{ String(order.id).padStart(4,'0') }}
             </span>
-            <span :style="{ fontFamily: TBF.mono, fontSize: '13px', fontWeight: '700' }">{{ fmt(order.totalPrice) }}</span>
+            <span :style="{ fontFamily: TBF.mono, fontSize: '13px', fontWeight: '700' }">{{ fmt(order.totalAmount) }}</span>
             <span :style="dateStyle">{{ fmtDate(order.createdAt) }}</span>
             <span :style="{ fontFamily: TBF.mono, fontSize: '12px', color: TB.MUTED }">{{ expanded.has(order.id) ? '▲' : '▼' }}</span>
           </div>
@@ -39,11 +39,9 @@
             </div>
             <div v-for="item in order.items" :key="item.id" :style="itemRowStyle">
               <span :style="{ color: TB.MUTED }">→</span>
-              <RouterLink :to="`/product/${item.productId}`" :style="itemLinkStyle">
-                {{ item.productName }}
-              </RouterLink>
+              <span :style="itemLinkStyle">{{ item.productName }}</span>
               <span :style="{ color: TB.MUTED }">×{{ item.quantity }}</span>
-              <span :style="{ fontWeight: '700' }">{{ fmt(Number(item.price) * item.quantity) }}</span>
+              <span :style="{ fontWeight: '700' }">{{ fmt(Number(item.priceAtPurchase) * item.quantity) }}</span>
             </div>
           </div>
         </div>
@@ -120,7 +118,7 @@ const commitHashStyle = {
 const statusBadgeStyle = (status: string) => ({
   fontFamily: TBF.mono, fontSize: '10px', fontWeight: '700', letterSpacing: '0.06em',
   padding: '2px 7px',
-  background: status === 'COMPLETED' ? TB.GREEN : status === 'CANCELLED' ? TB.RED : TB.ACCENT,
+  background: status === 'COMPLETED' ? TB.GREEN : status === 'CANCELLED' ? TB.RED : status === 'PENDING' ? TB.ACCENT : TB.INK,
   color:      status === 'COMPLETED' ? TB.CARD  : status === 'CANCELLED' ? TB.CARD : TB.INK,
 })
 const dateStyle = {
