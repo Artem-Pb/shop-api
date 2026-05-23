@@ -7,3 +7,8 @@ target/
 .env
 ai/
 potfolio_plan.md
+
+
+skrins/
+**/run-local.sh
+**/context.md

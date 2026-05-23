@@ -25,20 +25,12 @@ public class ProductController {
     public ResponseEntity<Page<ProductResponse>> getAll(
             @RequestParam(required = false) Long categoryId,
             @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(productService.getAll(categoryId, pageable).map(this::toResponse));
+    }
 
-        Page<ProductResponse> page = productService.getAll(categoryId, pageable)
-                .map(p -> {
-                    ProductResponse r = new ProductResponse();
-                    r.setId(p.getId());
-                    r.setName(p.getName());
-                    r.setDescription(p.getDescription());
-                    r.setPrice(p.getPrice());
-                    r.setStock(p.getStock());
-                    r.setCategoryId(p.getCategory().getId());
-                    r.setCategoryName(p.getCategory().getName());
-                    return r;
-                });
-        return ResponseEntity.ok(page);
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(toResponse(productService.getById(id)));
     }
 
     @PostMapping
@@ -54,17 +46,7 @@ public class ProductController {
         category.setId(request.getCategoryId());
         product.setCategory(category);
 
-        Product saved = productService.create(product);
-
-        ProductResponse response = new ProductResponse();
-        response.setId(saved.getId());
-        response.setName(saved.getName());
-        response.setDescription(saved.getDescription());
-        response.setPrice(saved.getPrice());
-        response.setStock(saved.getStock());
-        response.setCategoryId(saved.getCategory().getId());
-        response.setCategoryName(saved.getCategory().getName());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(toResponse(productService.create(product)));
     }
 
     @PutMapping("/{id}")
@@ -78,17 +60,7 @@ public class ProductController {
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
 
-        Product updated = productService.update(product);
-
-        ProductResponse response = new ProductResponse();
-        response.setId(updated.getId());
-        response.setName(updated.getName());
-        response.setDescription(updated.getDescription());
-        response.setPrice(updated.getPrice());
-        response.setStock(updated.getStock());
-        response.setCategoryId(updated.getCategory().getId());
-        response.setCategoryName(updated.getCategory().getName());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(toResponse(productService.update(product)));
     }
 
     @DeleteMapping("/{id}")
@@ -96,5 +68,17 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private ProductResponse toResponse(Product p) {
+        ProductResponse r = new ProductResponse();
+        r.setId(p.getId());
+        r.setName(p.getName());
+        r.setDescription(p.getDescription());
+        r.setPrice(p.getPrice());
+        r.setStock(p.getStock());
+        r.setCategoryId(p.getCategory().getId());
+        r.setCategoryName(p.getCategory().getName());
+        return r;
     }
 }
